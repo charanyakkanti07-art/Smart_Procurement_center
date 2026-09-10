@@ -1,0 +1,13 @@
+package com.smartprocurement.entity;
+
+public enum VoiceEventType {
+    CALL_SCHEDULED,
+    CALL_STARTED,
+    CALL_COMPLETED,
+    FARMER_READY_TO_TRAVEL,
+    CANCELLATION_REQUESTED,
+    RESCHEDULE_REQUESTED,
+    NO_ANSWER,
+    FARMER_NOT_REACHABLE,
+    MISSED_EXPECTED_ARRIVAL
+}

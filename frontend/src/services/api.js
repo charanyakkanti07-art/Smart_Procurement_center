@@ -1,13 +1,14 @@
 import axios from 'axios';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://smart-mandi-api-demo.loca.lt';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true'
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // Interceptor to inject Bearer token

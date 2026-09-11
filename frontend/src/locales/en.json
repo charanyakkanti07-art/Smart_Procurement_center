@@ -86,6 +86,11 @@
     "timeSlot": "Time Slot",
     "centre": "Procurement Centre",
     "tokenNumber": "Digital Token Number",
+    "depositTitle": "Refundable Booking Security Deposit",
+    "depositAmount": "₹300.00",
+    "depositNotice": "₹300 is a refundable booking security deposit. It will be returned to the farmer along with the final procurement payment after successful completion of procurement.",
+    "depositPolicyAck": "I understand that ₹300 is a refundable security deposit and that it may be forfeited according to the applicable no-show/cancellation policy.",
+    "depositRefunded": "₹300 booking deposit refunded successfully.",
     "startTravelling": "Start Travelling",
     "reachedCentre": "Reached Centre",
     "procurementStarted": "Procurement Started",
@@ -232,6 +237,19 @@
     "voiceSimulator": "AI Voice Agent Simulator",
     "approve": "Approve",
     "reject": "Reject",
-    "resolve": "Resolve Alert"
+    "resolve": "Resolve Alert",
+    "portalTitle": "Mandi Owner & Operator Portal",
+    "portalSubtitle": "Government Procurement Centre Management",
+    "loginTab": "Mandi Owner Login",
+    "registerTab": "Register New Owner",
+    "backToLanding": "Back to Mandi Owner Landing",
+    "operatorMobile": "Operator Mobile Number",
+    "password": "Password",
+    "accessDashboard": "Access Operator Dashboard",
+    "ownerName": "Full Name of Mandi Owner / Manager",
+    "mandiName": "Procurement Centre / Mandi Name",
+    "submitRegister": "Submit Registration Request",
+    "oneClickLogin": "1-Click Login",
+    "operatorAccess": "Mandi Operator Access"
   }
 }

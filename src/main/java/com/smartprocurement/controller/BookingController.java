@@ -41,4 +41,13 @@ public class BookingController {
         BookingResponse response = bookingService.rescheduleBooking(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{id}/start-travelling")
+    public ResponseEntity<BookingResponse> startTravelling(
+            @PathVariable Long id,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude) {
+        BookingResponse response = bookingService.startTravelling(id, latitude, longitude);
+        return ResponseEntity.ok(response);
+    }
 }

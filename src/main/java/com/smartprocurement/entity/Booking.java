@@ -48,6 +48,11 @@ public class Booking {
     private String rescheduleReason;
     private LocalDateTime updatedAt;
 
+    // Travel Tracking Fields
+    private Double farmerLatitude;
+    private Double farmerLongitude;
+    private LocalDateTime travellingStartedAt;
+
     public Booking() {
     }
 
@@ -136,6 +141,15 @@ public class Booking {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Double getFarmerLatitude() { return farmerLatitude; }
+    public void setFarmerLatitude(Double farmerLatitude) { this.farmerLatitude = farmerLatitude; }
+
+    public Double getFarmerLongitude() { return farmerLongitude; }
+    public void setFarmerLongitude(Double farmerLongitude) { this.farmerLongitude = farmerLongitude; }
+
+    public LocalDateTime getTravellingStartedAt() { return travellingStartedAt; }
+    public void setTravellingStartedAt(LocalDateTime travellingStartedAt) { this.travellingStartedAt = travellingStartedAt; }
 
     public static BookingBuilder builder() {
         return new BookingBuilder();

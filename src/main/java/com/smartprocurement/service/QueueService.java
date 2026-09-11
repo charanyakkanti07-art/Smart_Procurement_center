@@ -47,7 +47,7 @@ public class QueueService {
     private NotificationService notificationService;
 
     @Transactional
-    public void updateQueuePositionAndNotify(Long farmerId, int oldPosition, int newPosition, Long bookingId, String centreName, int waitMinutes) {
+    public void updateQueuePositionAndNotify(Long farmerId, int oldPosition, int newPosition, Long bookingId, String centreName, int waitMinutes, Long centreId, String estimatedTimeFormatted) {
         if (oldPosition == newPosition) {
             // CRITICAL BUSINESS RULE: If position has not changed, do NOT create a notification.
             return;
@@ -57,18 +57,27 @@ public class QueueService {
         params.put("oldPosition", oldPosition);
         params.put("newPosition", newPosition);
         params.put("estimatedWaitMinutes", waitMinutes);
+        params.put("estimatedTime", estimatedTimeFormatted != null ? estimatedTimeFormatted : (waitMinutes + " minutes"));
         params.put("centreName", centreName != null ? centreName : "Procurement Centre");
         params.put("bookingId", bookingId);
+        params.put("centreId", centreId);
 
-        String refId = "queue_change_booking_" + bookingId + "_from_" + oldPosition + "_to_" + newPosition;
-        notificationService.sendNotification(farmerId, NotificationEventType.QUEUE_CHANGED, params, refId);
+        String refId = "queue_update_booking_" + bookingId + "_pos_" + newPosition;
+        notificationService.sendNotification(farmerId, NotificationEventType.QUEUE_UPDATED, params, refId);
 
         if (newPosition <= 3 && newPosition > 1) {
             Map<String, Object> apprParams = new HashMap<>();
             apprParams.put("queuePosition", newPosition);
+            apprParams.put("bookingId", bookingId);
+            apprParams.put("centreId", centreId);
             notificationService.sendNotification(farmerId, NotificationEventType.QUEUE_APPROACHING, apprParams, "queue_appr_booking_" + bookingId + "_pos_" + newPosition);
         }
     }
+
+    public void updateQueuePositionAndNotify(Long farmerId, int oldPosition, int newPosition, Long bookingId, String centreName, int waitMinutes) {
+        updateQueuePositionAndNotify(farmerId, oldPosition, newPosition, bookingId, centreName, waitMinutes, null, null);
+    }
+
 
     private ProcurementCentre getOwnerCentre(String phone) {
         if (phone == null || phone.isEmpty()) {
@@ -306,6 +315,9 @@ public class QueueService {
         socketService.broadcastQueueUpdate(centre.getCentreId(), fullQueue);
         socketService.broadcastFarmerCompleted(centre.getCentreId(), completedDTO);
 
+        // Recalculate queue position changes and notify downstream farmers via SMS
+        recalculateQueueAndNotifyAffectedFarmers(centre.getCentreId(), bookingId);
+
         return completedDTO;
     }
 
@@ -370,8 +382,46 @@ public class QueueService {
         QueueStatusDTO dto = buildDTO(savedCancelled, new ArrayList<>(), null, calculateAverageProcessingTimeMinutes(centre.getCentreId()));
         socketService.broadcastFarmerCancelled(centre.getCentreId(), dto);
 
+        // Recalculate queue position changes and notify downstream farmers via SMS
+        recalculateQueueAndNotifyAffectedFarmers(centre.getCentreId(), bookingId);
+
         return dto;
     }
+
+    @Transactional
+    public void recalculateQueueAndNotifyAffectedFarmers(Long centreId, Long excludedBookingId) {
+        try {
+            List<QueueStatusDTO> currentQueue = getQueue(centreId);
+            ProcurementCentre centre = centreRepository.findById(centreId).orElse(null);
+            String centreName = centre != null ? centre.getName() : "Procurement Centre";
+
+            for (QueueStatusDTO item : currentQueue) {
+                if (item.getBookingId() == null || item.getBookingId().equals(excludedBookingId)) {
+                    continue;
+                }
+                if (item.getStatus() == BookingStatus.COMPLETED || item.getStatus() == BookingStatus.CANCELLED) {
+                    continue;
+                }
+
+                int currentPos = item.getQueuePosition();
+                int oldPos = currentPos + 1; // Prior position before queue compaction
+
+                updateQueuePositionAndNotify(
+                        item.getFarmerId(),
+                        oldPos,
+                        currentPos,
+                        item.getBookingId(),
+                        centreName,
+                        item.getEstimatedWaitMinutes(),
+                        centreId,
+                        item.getEstimatedWaitFormatted()
+                );
+            }
+        } catch (Exception e) {
+            // Log exception safely without throwing to preserve core business transaction
+        }
+    }
+
 
     private void syncBookingsToQueueEntries(Long centreId) {
         List<Booking> bookings = bookingRepository.findByCentreCentreId(centreId);

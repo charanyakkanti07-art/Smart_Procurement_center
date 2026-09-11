@@ -93,18 +93,21 @@ public class BookingService {
         } catch (Exception ignored) {
         }
 
-        // TRIGGER EVENT: BOOKING_CONFIRMATION
+        // TRIGGER EVENT: BOOKING_CONFIRMED
         try {
             Map<String, Object> params = new HashMap<>();
+            params.put("bookingId", saved.getBookingId());
+            params.put("centreId", centre.getCentreId());
             params.put("centreName", centre.getName());
             params.put("bookingDate", saved.getBookingDate() != null ? saved.getBookingDate().toString() : "Today");
             params.put("slot", saved.getSlot() != null ? saved.getSlot() : "Morning Slot");
             params.put("quantity", saved.getQuantity());
             params.put("cropType", crop.getCropType());
-            notificationService.sendNotification(farmer.getFarmerId(), NotificationEventType.BOOKING_CONFIRMATION, params, "booking_confirm_" + saved.getBookingId());
+            notificationService.sendNotification(farmer.getFarmerId(), NotificationEventType.BOOKING_CONFIRMED, params, "booking_confirm_" + saved.getBookingId());
         } catch (Exception e) {
             // Log but don't fail business transaction
         }
+
 
         return mapToResponse(saved, "Booking created successfully");
     }
@@ -180,6 +183,20 @@ public class BookingService {
         }
 
         return mapToResponse(updated, "Booking rescheduled successfully");
+    }
+
+    @Transactional
+    public BookingResponse startTravelling(Long id, Double latitude, Double longitude) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
+        booking.setStatus(BookingStatus.TRAVELLING);
+        if (latitude != null) booking.setFarmerLatitude(latitude);
+        if (longitude != null) booking.setFarmerLongitude(longitude);
+        booking.setTravellingStartedAt(java.time.LocalDateTime.now());
+
+        Booking updated = bookingRepository.save(booking);
+        return mapToResponse(updated, "Farmer started travelling to procurement centre");
     }
 
     private BookingResponse mapToResponse(Booking booking, String message) {

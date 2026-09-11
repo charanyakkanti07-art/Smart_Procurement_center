@@ -10,7 +10,6 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import StatusBadge from '../../components/StatusBadge';
 import Loading from '../../components/Loading';
-
 import { subscribeToQueueUpdates } from '../../services/socket';
 
 export const OwnerDashboard = () => {
@@ -26,15 +25,15 @@ export const OwnerDashboard = () => {
   const [actionAlerts, setActionAlerts] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
 
-  // Phase 14 States (Procurement & Payment Workflow)
+  // Procurement & Payment Workflow States
   const [ownerOverview, setOwnerOverview] = useState({
-    todaysFarmersCount: 5,
-    completedProcurementsCount: 3,
-    pendingProcurementsCount: 2,
-    paymentsCompletedCount: 2,
-    paymentsPendingCount: 1,
-    paymentFailuresCount: 1,
-    totalDisbursedAmountRs: 40100.0,
+    todaysFarmersCount: 0,
+    completedProcurementsCount: 0,
+    pendingProcurementsCount: 0,
+    paymentsCompletedCount: 0,
+    paymentsPendingCount: 0,
+    paymentFailuresCount: 0,
+    totalDisbursedAmountRs: 0.0,
     transactions: []
   });
 
@@ -65,6 +64,25 @@ export const OwnerDashboard = () => {
   const [assignModalBookingId, setAssignModalBookingId] = useState(null);
   const [newDate, setNewDate] = useState('2026-09-20');
   const [newSlot, setNewSlot] = useState('10:00 AM – 11:00 AM');
+
+  // QR Code Verification State
+  const [qrInput, setQrInput] = useState('');
+  const [scannedPayload, setScannedPayload] = useState(null);
+
+  const handleScanQrCode = (rawText) => {
+    try {
+      const parsed = JSON.parse(rawText);
+      if (parsed && parsed.bookingId) {
+        setScannedPayload(parsed);
+        setProcBookingId(parsed.bookingId);
+        showSuccess(`Valid Farmer QR Code Scanned! Token #${parsed.bookingId} (${parsed.farmer?.name || 'Farmer'}) Verified.`);
+      } else {
+        showError("Invalid QR Code payload. Expected official Mandi verification JSON.");
+      }
+    } catch (e) {
+      showError("Invalid QR payload format. Must be official JSON string.");
+    }
+  };
 
   useEffect(() => {
     fetchDashboard();
@@ -431,7 +449,7 @@ export const OwnerDashboard = () => {
       <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-amber-400 text-xs font-extrabold uppercase tracking-wider mb-1">
-            <Building2 className="w-4 h-4" /> PROCUREMENT CENTRE OPERATOR CONSOLE (PHASE 11 READY)
+            <Building2 className="w-4 h-4" /> PROCUREMENT CENTRE OPERATOR CONSOLE
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white">{stats.centreName}</h2>
           <p className="text-xs text-slate-300 mt-1 flex items-center gap-1 font-medium">
@@ -607,36 +625,36 @@ export const OwnerDashboard = () => {
         </button>
       </div>
 
-      {/* SECTION 0: PHASE 14 — PROCUREMENT & PAYMENT WORKFLOW */}
+      {/* SECTION 0: PROCUREMENT & PAYMENT WORKFLOW */}
       {activeTab === 'PROCUREMENT' && (
         <div className="flex flex-col gap-6 text-left">
-          {/* Phase 14 KPI Overview Cards */}
+          {/* KPI Overview Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-emerald-900 to-teal-950 text-white border-2 border-emerald-600">
               <span className="text-[10px] text-emerald-300 font-extrabold uppercase block">Total Disbursed Today</span>
-              <div className="text-3xl font-black text-white mt-1">₹{ownerOverview.totalDisbursedAmountRs?.toLocaleString('en-IN') || '40,100'}</div>
+              <div className="text-3xl font-black text-white mt-1">₹{(ownerOverview.totalDisbursedAmountRs || 0).toLocaleString('en-IN')}</div>
               <span className="text-xs text-emerald-200 mt-1 block">Direct Benefit Transfer (DBT)</span>
             </Card>
 
             <Card className="bg-white border border-slate-200">
               <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Completed Procurements</span>
-              <div className="text-2xl font-black text-emerald-700 mt-1">{ownerOverview.completedProcurementsCount || 3}</div>
+              <div className="text-2xl font-black text-emerald-700 mt-1">{ownerOverview.completedProcurementsCount || 0}</div>
               <span className="text-xs text-slate-500 mt-1 block">Tokens Processed & Confirmed</span>
             </Card>
 
             <Card className="bg-white border border-slate-200">
               <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Completed Payments</span>
-              <div className="text-2xl font-black text-blue-700 mt-1">{ownerOverview.paymentsCompletedCount || 2}</div>
+              <div className="text-2xl font-black text-blue-700 mt-1">{ownerOverview.paymentsCompletedCount || 0}</div>
               <span className="text-xs text-slate-500 mt-1 block">Successful Bank Transfers</span>
             </Card>
 
             <Card className="bg-white border border-slate-200">
               <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Pending / Failed Payments</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl font-black text-amber-600">{ownerOverview.paymentsPendingCount || 1} Pending</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">{ownerOverview.paymentFailuresCount || 1} Failed</span>
+                <span className="text-2xl font-black text-amber-600">{ownerOverview.paymentsPendingCount || 0} Pending</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">{ownerOverview.paymentFailuresCount || 0} Failed</span>
               </div>
-              <span className="text-xs text-slate-500 mt-1 block">Action / Retry Available</span>
+              <span className="text-xs text-slate-500 mt-1 block">Awaiting / Retry Available</span>
             </Card>
           </div>
 
@@ -669,8 +687,46 @@ export const OwnerDashboard = () => {
               <div className="flex flex-col gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-slate-900 text-base">Step 1: Farmer Arrival & Identity Verification</h4>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">Booking Token #101</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">Booking Token #{procBookingId}</span>
                 </div>
+
+                {/* QR Code Scanner / Verification Box */}
+                <div className="p-3 bg-emerald-950 text-white rounded-xl border border-emerald-800 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-amber-400 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" /> Digital QR Code Scanner / Verifier
+                    </span>
+                    <span className="text-[10px] text-emerald-300 font-semibold">Official Mandi Gate Scanner</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Scan or paste Farmer QR Payload (JSON)..."
+                      value={qrInput}
+                      onChange={(e) => setQrInput(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-emerald-700 text-emerald-200 text-xs font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { handleScanQrCode(qrInput); setQrInput(''); }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-lg transition-colors cursor-pointer shrink-0"
+                    >
+                      Verify QR
+                    </button>
+                  </div>
+
+                  {scannedPayload && (
+                    <div className="p-2.5 rounded-lg bg-emerald-900/80 border border-emerald-500 text-[11px] flex flex-col gap-1 text-emerald-100">
+                      <div className="flex items-center justify-between font-bold text-emerald-300">
+                        <span>✅ QR VERIFIED: Token #{scannedPayload.bookingId}</span>
+                        <span>{scannedPayload.crop?.type || 'Paddy'} • {scannedPayload.crop?.quantityKg || 500} kg</span>
+                      </div>
+                      <div>Farmer: <strong>{scannedPayload.farmer?.name}</strong> ({scannedPayload.farmer?.phone})</div>
+                      <div className="text-[10px] text-emerald-300">Hash: {scannedPayload.securityHash}</div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <label className="text-slate-500 font-bold block mb-1">Target Booking ID</label>
@@ -692,7 +748,7 @@ export const OwnerDashboard = () => {
                   </div>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Verify farmer's arrival at mandi gate against booking token #101. Verify Aadhaar/Identity card details prior to weighing.
+                  Verify farmer's arrival at mandi gate against booking token #{procBookingId}. Verify Aadhaar/Identity card details prior to weighing.
                 </p>
                 <div className="flex justify-end gap-3 pt-2">
                   <Button variant="primary" icon={UserCheck} loading={actionLoading} onClick={handleVerifyProcurement}>
@@ -878,7 +934,7 @@ export const OwnerDashboard = () => {
                     {/* GATEWAY SIMULATION ACTION BUTTONS */}
                     <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
                       <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block mb-2">
-                        CONTROLLED GATEWAY SIMULATION ACTIONS (PHASE 14 SIH DEMO)
+                        DBT PAYMENT GATEWAY ACTIONS
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <Button size="sm" variant="success" icon={CheckCircle} loading={actionLoading} onClick={() => handleSimulatePaymentSuccess(activePayment.paymentId)}>
@@ -919,45 +975,11 @@ export const OwnerDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {mockProcurements.map((pr) => {
-                    const matchedPay = mockPaymentsHistory.find(p => p.procurementCode === pr.procurementCode);
-                    return (
-                      <tr key={pr.procurementId} className="hover:bg-slate-50">
-                        <td className="p-3 font-mono font-bold text-slate-900">{pr.procurementCode}</td>
-                        <td className="p-3">
-                          <span className="font-extrabold text-slate-900 block">{pr.farmerName}</span>
-                          <span className="text-[10px] text-slate-400">{pr.farmerPhone}</span>
-                        </td>
-                        <td className="p-3">{pr.cropType}</td>
-                        <td className="p-3 font-bold text-slate-800">{pr.netQuantity} kg</td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-100 text-blue-900">
-                            {pr.qualityGrade}
-                          </span>
-                        </td>
-                        <td className="p-3 font-semibold text-slate-700">₹{pr.ratePerUnit}</td>
-                        <td className="p-3 font-black text-emerald-800">₹{pr.totalAmount?.toLocaleString('en-IN')}</td>
-                        <td className="p-3">
-                          <StatusBadge status={matchedPay?.status || 'PENDING'} />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1">
-                            <Button size="xs" variant="success" onClick={() => handleSimulatePaymentSuccess(matchedPay?.paymentId || 1)}>
-                              Success
-                            </Button>
-                            <Button size="xs" variant="danger" onClick={() => handleSimulatePaymentFailure(matchedPay?.paymentId || 1)}>
-                              Fail
-                            </Button>
-                            {matchedPay?.status === 'FAILED' && (
-                              <Button size="xs" variant="outline" onClick={() => handleRetryPayment(matchedPay?.paymentId || 1)}>
-                                Retry
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-slate-400 text-sm">
+                      No procurement records found. Records will appear here after farmers complete their procurement.
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1034,7 +1056,7 @@ export const OwnerDashboard = () => {
         </Card>
       )}
 
-      {/* SECTION 2: PENDING APPROVALS (PHASE 11 HUMAN-IN-THE-LOOP) */}
+      {/* SECTION 2: PENDING APPROVALS */}
       {activeTab === 'APPROVALS' && (
         <Card title="Pending Approvals (Owner Decision Required)" subtitle="AI Agent & Farmer Cancellation/Rescheduling Requests">
           {pendingApprovals.length === 0 ? (
@@ -1161,9 +1183,9 @@ export const OwnerDashboard = () => {
         </Card>
       )}
 
-      {/* SECTION 4: AI VOICE AGENT SIMULATOR (DEV & DEMO LAYER) */}
+      {/* SECTION 4: AI VOICE AGENT SIMULATOR */}
       {activeTab === 'SIMULATOR' && (
-        <Card title="AI Voice Call Simulator (Development & Demo Control)" subtitle="Simulate AI call triggers and standardized voice events for Phase 11 testing">
+        <Card title="AI Voice Call Advisory" subtitle="Initiate automated multilingual voice call advisory for farmer queue dispatch">
           <div className="flex flex-col gap-4 text-left">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

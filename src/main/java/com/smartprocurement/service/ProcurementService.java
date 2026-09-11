@@ -40,6 +40,10 @@ public class ProcurementService {
     @Lazy
     private PaymentService paymentService;
 
+    @Autowired
+    @Lazy
+    private DepositService depositService;
+
     @Transactional
     public ProcurementDTO markArrival(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -203,6 +207,13 @@ public class ProcurementService {
                 procurement.getCentre().getCentreId(), ApprovalActor.OWNER,
                 String.format("Procurement %s confirmed for %.1f kg (Rs.%.2f)",
                         saved.getProcurementCode(), saved.getNetQuantity(), saved.getTotalAmount()));
+
+        // Process ₹300 refundable deposit refund
+        try {
+            depositService.processProcurementRefund(bookingId, saved.getTotalAmount());
+        } catch (Exception ex) {
+            logger.error("Error processing deposit refund for booking " + bookingId, ex);
+        }
 
         // Automatically trigger payment initiation
         paymentService.initiatePayment(saved.getProcurementId(), PaymentMethod.DIRECT_BENEFIT_TRANSFER);

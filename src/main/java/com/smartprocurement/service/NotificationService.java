@@ -78,6 +78,14 @@ public class NotificationService {
         List<Notification> createdNotifications = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
+        // Extract tracking metadata params
+        Long bId = parseLong(params, "bookingId");
+        Long cId = parseLong(params, "centreId");
+        Integer posBefore = parseInt(params, "oldPosition", "queuePositionBefore");
+        Integer posAfter = parseInt(params, "newPosition", "queuePositionAfter");
+        String timeBefore = parseString(params, "estimatedTimeBefore");
+        String timeAfter = parseString(params, "estimatedTime", "estimatedTimeAfter");
+
         // 1. APP Channel Notification
         if (preference.isAppEnabled()) {
             Notification appNotif = Notification.builder()
@@ -88,6 +96,13 @@ public class NotificationService {
                     .channel(NotificationChannel.APP)
                     .status(NotificationStatus.SENT)
                     .referenceId(referenceId)
+                    .phoneNumber(farmer.getPhone())
+                    .bookingId(bId)
+                    .centreId(cId)
+                    .queuePositionBefore(posBefore)
+                    .queuePositionAfter(posAfter)
+                    .estimatedTimeBefore(timeBefore)
+                    .estimatedTimeAfter(timeAfter)
                     .sentAt(now)
                     .build();
             Notification savedApp = notificationRepository.save(appNotif);
@@ -101,14 +116,21 @@ public class NotificationService {
         // 2. SMS Channel Notification
         if (preference.isSmsEnabled()) {
             NotificationStatus status = NotificationStatus.SENT;
+            String providerSid = null;
+            String errorMsg = null;
             try {
-                boolean success = smsProvider.sendSms(farmer.getPhone(), template.getMessage(), eventType);
-                if (!success) {
+                com.smartprocurement.service.provider.SmsResult result = smsProvider.sendSmsDetailed(farmer.getPhone(), template.getMessage(), eventType);
+                if (result.isSuccess()) {
+                    status = NotificationStatus.SENT;
+                    providerSid = result.getProviderMessageId();
+                } else {
                     status = NotificationStatus.FAILED;
+                    errorMsg = result.getErrorMessage();
                 }
             } catch (Exception e) {
                 logger.error("Failed to dispatch SMS notification to {}", farmer.getPhone(), e);
                 status = NotificationStatus.FAILED;
+                errorMsg = e.getMessage();
             }
 
             Notification smsNotif = Notification.builder()
@@ -119,6 +141,15 @@ public class NotificationService {
                     .channel(NotificationChannel.SMS)
                     .status(status)
                     .referenceId(referenceId)
+                    .phoneNumber(farmer.getPhone())
+                    .bookingId(bId)
+                    .centreId(cId)
+                    .queuePositionBefore(posBefore)
+                    .queuePositionAfter(posAfter)
+                    .estimatedTimeBefore(timeBefore)
+                    .estimatedTimeAfter(timeAfter)
+                    .providerMessageId(providerSid)
+                    .errorMessage(errorMsg)
                     .sentAt(now)
                     .build();
             createdNotifications.add(notificationRepository.save(smsNotif));
@@ -145,6 +176,13 @@ public class NotificationService {
                     .channel(NotificationChannel.VOICE)
                     .status(status)
                     .referenceId(referenceId)
+                    .phoneNumber(farmer.getPhone())
+                    .bookingId(bId)
+                    .centreId(cId)
+                    .queuePositionBefore(posBefore)
+                    .queuePositionAfter(posAfter)
+                    .estimatedTimeBefore(timeBefore)
+                    .estimatedTimeAfter(timeAfter)
                     .sentAt(now)
                     .build();
             createdNotifications.add(notificationRepository.save(voiceNotif));
@@ -160,6 +198,9 @@ public class NotificationService {
                     .channel(NotificationChannel.APP)
                     .status(NotificationStatus.SENT)
                     .referenceId(referenceId)
+                    .phoneNumber(farmer.getPhone())
+                    .bookingId(bId)
+                    .centreId(cId)
                     .sentAt(now)
                     .build();
             Notification saved = notificationRepository.save(defaultNotif);
@@ -174,6 +215,63 @@ public class NotificationService {
 
         return mapToDTO(primary);
     }
+
+    private Long parseLong(Map<String, Object> params, String key) {
+        if (params == null) return null;
+        Object val = params.get(key);
+        if (val instanceof Number) return ((Number) val).longValue();
+        if (val != null) {
+            try { return Long.parseLong(val.toString()); } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private Integer parseInt(Map<String, Object> params, String... keys) {
+        if (params == null) return null;
+        for (String key : keys) {
+            Object val = params.get(key);
+            if (val instanceof Number) return ((Number) val).intValue();
+            if (val != null) {
+                try { return Integer.parseInt(val.toString()); } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private String parseString(Map<String, Object> params, String... keys) {
+        if (params == null) return null;
+        for (String key : keys) {
+            Object val = params.get(key);
+            if (val != null) return val.toString();
+        }
+        return null;
+    }
+
+    public NotificationDTO mapToDTO(Notification n) {
+        return NotificationDTO.builder()
+                .notificationId(n.getNotificationId())
+                .farmerId(n.getFarmer() != null ? n.getFarmer().getFarmerId() : null)
+                .eventType(n.getEventType())
+                .title(n.getTitle())
+                .message(n.getMessage())
+                .channel(n.getChannel())
+                .status(n.getStatus())
+                .referenceId(n.getReferenceId())
+                .phoneNumber(n.getPhoneNumber())
+                .bookingId(n.getBookingId())
+                .centreId(n.getCentreId())
+                .queuePositionBefore(n.getQueuePositionBefore())
+                .queuePositionAfter(n.getQueuePositionAfter())
+                .estimatedTimeBefore(n.getEstimatedTimeBefore())
+                .estimatedTimeAfter(n.getEstimatedTimeAfter())
+                .providerMessageId(n.getProviderMessageId())
+                .errorMessage(n.getErrorMessage())
+                .createdAt(n.getCreatedAt())
+                .sentAt(n.getSentAt())
+                .readAt(n.getReadAt())
+                .build();
+    }
+
 
     @Transactional(readOnly = true)
     public List<NotificationDTO> getFarmerNotifications(Long farmerId) {
@@ -266,22 +364,6 @@ public class NotificationService {
         return mapPreferenceToDTO(updated);
     }
 
-    public NotificationDTO mapToDTO(Notification n) {
-        return NotificationDTO.builder()
-                .notificationId(n.getNotificationId())
-                .farmerId(n.getFarmer() != null ? n.getFarmer().getFarmerId() : null)
-                .eventType(n.getEventType())
-                .title(n.getTitle())
-                .message(n.getMessage())
-                .channel(n.getChannel())
-                .status(n.getStatus())
-                .referenceId(n.getReferenceId())
-                .createdAt(n.getCreatedAt())
-                .sentAt(n.getSentAt())
-                .readAt(n.getReadAt())
-                .build();
-    }
-
     private NotificationPreferenceDTO mapPreferenceToDTO(NotificationPreference p) {
         return NotificationPreferenceDTO.builder()
                 .farmerId(p.getFarmer() != null ? p.getFarmer().getFarmerId() : null)
@@ -292,3 +374,4 @@ public class NotificationService {
                 .build();
     }
 }
+

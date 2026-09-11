@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sprout,
@@ -10,17 +10,31 @@ import {
   Bell,
   TrendingUp,
   PlusCircle,
-  Navigation
+  Navigation,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
+import { handleStartTravelling } from '../services/navigationService';
 
 export const Home = () => {
   const { farmer, activeBooking } = useAuth();
   const { t } = useLanguage();
+  const [navLoading, setNavLoading] = useState(false);
+  const [navError, setNavError] = useState('');
+
+  const onNavClick = () => {
+    setNavError('');
+    handleStartTravelling({
+      booking: activeBooking,
+      onStartLoading: () => setNavLoading(true),
+      onEndLoading: () => setNavLoading(false),
+      onError: (msg) => setNavError(msg)
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 flex flex-col gap-6">
@@ -104,12 +118,25 @@ export const Home = () => {
             </div>
           </div>
 
+          {navError && (
+            <div className="mt-4 p-3 bg-rose-50 border border-rose-300 text-rose-900 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{navError}</span>
+            </div>
+          )}
+
           {/* Quick Action Bar for Token */}
           <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-              <Navigation className="w-4 h-4 text-emerald-700" />
-              <span>{t('booking.startTravelling')}</span>
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              icon={Navigation}
+              loading={navLoading}
+              onClick={onNavClick}
+              className="border-emerald-600 text-emerald-800 hover:bg-emerald-50 font-bold"
+            >
+              {t('booking.startTravelling')}
+            </Button>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Link to="/token" className="flex-1 sm:flex-initial">
                 <Button size="sm" variant="secondary" icon={Ticket}>
@@ -147,16 +174,6 @@ export const Home = () => {
       </h3>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4">
-        <Link to="/find-centres">
-          <Card className="hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer h-full text-left">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center mb-3">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <h4 className="font-bold text-slate-900 text-sm">{t('booking.selectCentre')}</h4>
-            <p className="text-xs text-slate-500 mt-1">{t('centre.recommendationTitle')}</p>
-          </Card>
-        </Link>
-
         <Link to="/crop-details">
           <Card className="hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer h-full text-left">
             <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center mb-3">
@@ -164,6 +181,16 @@ export const Home = () => {
             </div>
             <h4 className="font-bold text-slate-900 text-sm">{t('farmer.cropDetails')}</h4>
             <p className="text-xs text-slate-500 mt-1">{t('farmer.quantity')}</p>
+          </Card>
+        </Link>
+
+        <Link to="/find-centres">
+          <Card className="border-2 border-emerald-500 bg-emerald-50/20 hover:border-emerald-600 transition-all cursor-pointer h-full text-left">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center mb-3">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <h4 className="font-bold text-slate-900 text-sm">{t('booking.selectCentre')}</h4>
+            <p className="text-xs text-slate-500 mt-1">{t('centre.recommendationTitle')}</p>
           </Card>
         </Link>
 
@@ -206,6 +233,23 @@ export const Home = () => {
             <p className="text-xs text-slate-500 mt-1">{t('notifications.title')}</p>
           </Card>
         </Link>
+      </div>
+
+      {/* Interconnected Portals Section */}
+      <div className="mt-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg text-left border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">SYSTEM ROLE GATEWAYS</span>
+          <h4 className="font-black text-white text-base mt-0.5">Switch to Other System Portals</h4>
+          <p className="text-xs text-slate-300 mt-0.5">Access Mandi Operator control room or District Authority console.</p>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link to="/owner" className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-xs">
+            🏬 Mandi Owner
+          </Link>
+          <Link to="/admin" className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-700 text-amber-300 font-black text-xs flex items-center justify-center gap-1.5 shadow-xs">
+            🛡️ District Admin
+          </Link>
+        </div>
       </div>
     </div>
   );

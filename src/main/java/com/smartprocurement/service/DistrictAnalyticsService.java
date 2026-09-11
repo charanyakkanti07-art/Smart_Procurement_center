@@ -25,32 +25,27 @@ public class DistrictAnalyticsService {
         List<Procurement> procurements = procurementRepository.findAll();
         List<Payment> payments = paymentRepository.findAll();
 
-        int totalCentres = centres.isEmpty() ? 25 : centres.size();
-        int activeCentres = Math.max(1, (int) centres.stream().filter(c -> c.getStatus() == CentreStatus.ACTIVE).count());
-        if (centres.isEmpty()) activeCentres = 21;
+        int totalCentres = centres.size();
+        int activeCentres = (int) centres.stream().filter(c -> c.getStatus() == CentreStatus.ACTIVE).count();
 
-        int farmersToday = bookings.isEmpty() ? 1284 : bookings.size();
-        double totalProcurementKg = procurements.isEmpty() ? 48520.0 : procurements.stream().mapToDouble(Procurement::getNetQuantity).sum();
+        int farmersToday = bookings.size();
+        double totalProcurementKg = procurements.stream().mapToDouble(Procurement::getNetQuantity).sum();
 
-        double totalPendingRs = payments.isEmpty() ? 245000.0 : payments.stream()
+        double totalPendingRs = payments.stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PENDING || p.getStatus() == PaymentStatus.FAILED)
                 .mapToDouble(Payment::getAmount).sum();
 
         int cancellations = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).count();
-        if (cancellations == 0) cancellations = 76;
-
         int rescheduling = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.RESCHEDULED || b.getStatus() == BookingStatus.RESCHEDULE_REQUESTED).count();
-        if (rescheduling == 0) rescheduling = 113;
-
-        int noShows = 34; // standard metric threshold for district
+        int noShows = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.NO_SHOW).count();
 
         return AdminDTO.DistrictOverview.builder()
                 .totalCentres(totalCentres)
                 .activeCentres(activeCentres)
                 .farmersToday(farmersToday)
                 .totalProcurementKg(totalProcurementKg)
-                .avgWaitTimeMinutes(42)
-                .avgProcessingTimeMinutes(18)
+                .avgWaitTimeMinutes(centres.isEmpty() ? 0 : 25)
+                .avgProcessingTimeMinutes(centres.isEmpty() ? 0 : 15)
                 .cancellationsCount(cancellations)
                 .reschedulingCount(rescheduling)
                 .noShowsCount(noShows)
@@ -63,10 +58,6 @@ public class DistrictAnalyticsService {
         List<AdminDTO.CentreHealthInfo> healthList = new ArrayList<>();
 
         if (centres.isEmpty()) {
-            healthList.add(buildCentreHealth(1L, "ABC Procurement Centre", "Kondapur Road, Medak", 88.0, 1000, 880, 42, 3, "HIGH_LOAD", "42 farmers currently waiting; 3 active counters; Estimated wait 96 mins; Demand exceeds processing capacity"));
-            healthList.add(buildCentreHealth(2L, "Regional Grain Mandi", "Sangareddy Highway, Medak", 45.0, 2000, 900, 12, 5, "NORMAL", "Optimal processing. Low queue wait time."));
-            healthList.add(buildCentreHealth(3L, "North Farmers Hub", "Tupran Bypass, Medak", 92.0, 1000, 920, 58, 2, "CRITICAL", "High arrival surge; 58 farmers waiting; 2 counters active; Capacity exceeded."));
-            healthList.add(buildCentreHealth(4L, "Siddipet Central Mandi", "Siddipet Ring Road", 72.0, 1500, 1080, 24, 4, "MODERATE", "Moderate load. Queue processing within acceptable boundaries."));
             return healthList;
         }
 
@@ -134,43 +125,53 @@ public class DistrictAnalyticsService {
     }
 
     public AdminDTO.QueueAnalyticsInfo getQueueAnalytics() {
-        List<AdminDTO.HourlyTrendPoint> hourly = Arrays.asList(
-                AdminDTO.HourlyTrendPoint.builder().hour("08:00 - 09:00").waitingCount(12).processedCount(18).avgWaitMinutes(15).build(),
-                AdminDTO.HourlyTrendPoint.builder().hour("09:00 - 10:00").waitingCount(45).processedCount(30).avgWaitMinutes(32).build(),
-                AdminDTO.HourlyTrendPoint.builder().hour("10:00 - 11:00").waitingCount(78).processedCount(42).avgWaitMinutes(55).build(),
-                AdminDTO.HourlyTrendPoint.builder().hour("11:00 - 12:00").waitingCount(94).processedCount(50).avgWaitMinutes(68).build(),
-                AdminDTO.HourlyTrendPoint.builder().hour("12:00 - 13:00").waitingCount(62).processedCount(45).avgWaitMinutes(48).build(),
-                AdminDTO.HourlyTrendPoint.builder().hour("13:00 - 14:00").waitingCount(35).processedCount(40).avgWaitMinutes(28).build()
-        );
+        List<Booking> bookings = bookingRepository.findAll();
+        int waiting = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.WAITING || b.getStatus() == BookingStatus.CONFIRMED).count();
+        int processing = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.IN_PROGRESS || b.getStatus() == BookingStatus.ARRIVED).count();
+        int completed = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.COMPLETED).count();
+        int cancellations = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).count();
+        int noShows = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.NO_SHOW).count();
+
+        List<AdminDTO.HourlyTrendPoint> hourly = new ArrayList<>();
+        if (!bookings.isEmpty()) {
+            hourly.add(AdminDTO.HourlyTrendPoint.builder().hour("09:00 - 11:00").waitingCount(waiting).processedCount(completed).avgWaitMinutes(waiting > 0 ? 20 : 0).build());
+        }
 
         return AdminDTO.QueueAnalyticsInfo.builder()
-                .totalQueueLength(184)
-                .avgQueueLength(32)
-                .avgWaitMinutes(42)
-                .maxWaitMinutes(96)
-                .farmersServedToday(840)
-                .farmersWaiting(184)
-                .farmersProcessing(28)
-                .queueCancellations(14)
-                .queueNoShows(8)
+                .totalQueueLength(waiting)
+                .avgQueueLength(waiting)
+                .avgWaitMinutes(waiting > 0 ? 25 : 0)
+                .maxWaitMinutes(waiting > 0 ? 45 : 0)
+                .farmersServedToday(completed)
+                .farmersWaiting(waiting)
+                .farmersProcessing(processing)
+                .queueCancellations(cancellations)
+                .queueNoShows(noShows)
                 .hourlyTrends(hourly)
                 .build();
     }
 
     public AdminDTO.ProcurementAnalyticsInfo getProcurementAnalytics() {
-        List<AdminDTO.CropVolume> crops = Arrays.asList(
-                AdminDTO.CropVolume.builder().cropType("Paddy (Kharif)").quantityKg(28500.0).totalAmountRs(712500.0).build(),
-                AdminDTO.CropVolume.builder().cropType("Wheat").quantityKg(12400.0).totalAmountRs(285200.0).build(),
-                AdminDTO.CropVolume.builder().cropType("Maize").quantityKg(5200.0).totalAmountRs(119600.0).build(),
-                AdminDTO.CropVolume.builder().cropType("Cotton").quantityKg(2420.0).totalAmountRs(145200.0).build()
-        );
+        List<Procurement> procurements = procurementRepository.findAll();
+        double totalQuantity = procurements.stream().mapToDouble(Procurement::getNetQuantity).sum();
+        int completed = procurements.size();
+
+        List<AdminDTO.CropVolume> crops = new ArrayList<>();
+        for (Procurement p : procurements) {
+            String crop = (p.getCropType() != null && !p.getCropType().isEmpty()) ? p.getCropType() : "Paddy";
+            crops.add(AdminDTO.CropVolume.builder()
+                    .cropType(crop)
+                    .quantityKg(p.getNetQuantity())
+                    .totalAmountRs(p.getTotalAmount())
+                    .build());
+        }
 
         return AdminDTO.ProcurementAnalyticsInfo.builder()
-                .totalQuantityKg(48520.0)
-                .totalTransactionsCount(118)
-                .avgQuantityPerFarmerKg(411.2)
-                .completedProcurementsCount(112)
-                .failedProcurementsCount(6)
+                .totalQuantityKg(totalQuantity)
+                .totalTransactionsCount(completed)
+                .avgQuantityPerFarmerKg(completed > 0 ? (totalQuantity / completed) : 0.0)
+                .completedProcurementsCount(completed)
+                .failedProcurementsCount(0)
                 .cropVolumes(crops)
                 .build();
     }

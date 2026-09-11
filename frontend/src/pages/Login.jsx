@@ -17,6 +17,11 @@ export const Login = () => {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
 
+  const handleDemoFill = () => {
+    setPhone('9876543210');
+    setPassword('123456');
+  };
+
   const validate = () => {
     const errs = {};
     if (!phone || phone.trim().length !== 10) {
@@ -66,6 +71,21 @@ export const Login = () => {
 
       {apiError && <ErrorMessage message={apiError} className="mb-4" />}
 
+      {/* 1-Click Farmer Access Helper */}
+      <div className="mb-4 p-3 rounded-2xl bg-emerald-900 text-emerald-100 border border-emerald-800 flex items-center justify-between gap-3 text-xs shadow-sm">
+        <div>
+          <span className="font-extrabold block text-emerald-300">Farmer Quick Access</span>
+          <span className="text-[11px] text-emerald-200">Phone: 9876543210 | Pass: 123456</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleDemoFill}
+          className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-xs"
+        >
+          1-Click Fill
+        </button>
+      </div>
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
         <Input
@@ -100,39 +120,22 @@ export const Login = () => {
           {t('onboarding.loginTitle')}
         </Button>
 
-        {/* Quick Demo Credentials Selector */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left">
-          <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">⚡ Demo Quick Fill:</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => { setPhone('9876543210'); setPassword('123456'); }}
-              className={`px-2.5 py-1 rounded-lg border font-bold text-xs transition-colors cursor-pointer ${phone === '9876543210' ? 'bg-emerald-800 text-white border-emerald-900' : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'}`}
-            >
-              🌾 Farmer
-            </button>
-            <button
-              type="button"
-              onClick={() => { setPhone('9876543211'); setPassword('123456'); }}
-              className={`px-2.5 py-1 rounded-lg border font-bold text-xs transition-colors cursor-pointer ${phone === '9876543211' ? 'bg-amber-600 text-white border-amber-700' : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-50'}`}
-            >
-              🏬 Mandi Owner
-            </button>
-            <button
-              type="button"
-              onClick={() => { setPhone('9999999999'); setPassword('admin123'); }}
-              className={`px-2.5 py-1 rounded-lg border font-bold text-xs transition-colors cursor-pointer ${phone === '9999999999' ? 'bg-slate-900 text-amber-400 border-slate-950' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'}`}
-            >
-              🏛️ Admin
-            </button>
-          </div>
-        </div>
+
 
         <Link to="/register" className="w-full">
           <Button variant="outline" fullWidth>
             {t('onboarding.registerTitle')}
           </Button>
         </Link>
+
+        <div className="pt-2 flex flex-col sm:flex-row gap-2 text-center text-xs">
+          <Link to="/owner/login" className="flex-1 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-extrabold transition-colors">
+            🏬 Dedicated Owner Login →
+          </Link>
+          <Link to="/admin/login" className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-extrabold transition-colors">
+            🏛️ Dedicated Admin Login →
+          </Link>
+        </div>
       </form>
 
       {/* Govt Trust Badge Footer */}

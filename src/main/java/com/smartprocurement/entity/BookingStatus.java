@@ -2,7 +2,9 @@ package com.smartprocurement.entity;
 
 public enum BookingStatus {
     BOOKED,
+    PAYMENT_PENDING,
     CONFIRMED,
+    TRAVELLING,
     WAITING,
     CALLED,
     ARRIVED,
@@ -13,5 +15,6 @@ public enum BookingStatus {
     CANCELLED,
     RESCHEDULE_REQUESTED,
     RESCHEDULED,
-    REJECTED
+    REJECTED,
+    NO_SHOW
 }

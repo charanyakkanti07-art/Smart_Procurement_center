@@ -7,6 +7,7 @@ import com.smartprocurement.entity.Farmer;
 import com.smartprocurement.entity.ProcurementCentre;
 import com.smartprocurement.entity.Role;
 import com.smartprocurement.entity.User;
+import com.smartprocurement.entity.UserStatus;
 import com.smartprocurement.exception.BadRequestException;
 import com.smartprocurement.repository.CentreRepository;
 import com.smartprocurement.repository.FarmerRepository;
@@ -47,9 +48,10 @@ public class AuthService {
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
+        UserStatus initialStatus = (userRole == Role.OWNER) ? UserStatus.PENDING : UserStatus.ACTIVE;
+
         ProcurementCentre assignedCentre = null;
         if (userRole == Role.OWNER) {
-            // Assign default centre 1 or create centre
             assignedCentre = centreRepository.findAll().stream().findFirst().orElseGet(() -> {
                 ProcurementCentre newCentre = ProcurementCentre.builder()
                         .name("ABC Procurement Centre")
@@ -68,6 +70,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .password(encodedPassword)
                 .role(userRole)
+                .status(initialStatus)
                 .centre(assignedCentre)
                 .build();
         userRepository.save(user);
@@ -86,16 +89,23 @@ public class AuthService {
             farmerId = savedFarmer.getFarmerId();
         }
 
-        String token = jwtUtils.generateToken(user.getPhone(), user.getRole().name());
+        String token = (initialStatus == UserStatus.ACTIVE)
+                ? jwtUtils.generateToken(user.getPhone(), user.getRole().name())
+                : null;
+
+        String msg = (initialStatus == UserStatus.PENDING)
+                ? "Mandi Owner registration submitted successfully. Your account is PENDING approval by District Administrator."
+                : "User registered successfully";
 
         return AuthResponse.builder()
                 .token(token)
-                .message("User registered successfully")
+                .message(msg)
                 .userId(user.getId())
                 .farmerId(farmerId)
                 .centreId(assignedCentre != null ? assignedCentre.getCentreId() : null)
                 .centreName(assignedCentre != null ? assignedCentre.getName() : null)
                 .role(user.getRole())
+                .status(user.getStatus())
                 .build();
     }
 
@@ -105,6 +115,15 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadRequestException("Invalid phone number or password");
+        }
+
+        if (user.getRole() == Role.OWNER) {
+            if (user.getStatus() == UserStatus.PENDING) {
+                throw new BadRequestException("Your Mandi Owner account is PENDING approval by District Administrator.");
+            }
+            if (user.getStatus() == UserStatus.REJECTED) {
+                throw new BadRequestException("Your Mandi Owner registration request was REJECTED by District Administrator.");
+            }
         }
 
         Long farmerId = null;
@@ -117,7 +136,6 @@ public class AuthService {
 
         ProcurementCentre assignedCentre = user.getCentre();
         if (user.getRole() == Role.OWNER && assignedCentre == null) {
-            // Assign default centre 1 if unassigned
             assignedCentre = centreRepository.findAll().stream().findFirst().orElse(null);
             if (assignedCentre != null) {
                 user.setCentre(assignedCentre);
@@ -135,6 +153,7 @@ public class AuthService {
                 .centreId(assignedCentre != null ? assignedCentre.getCentreId() : null)
                 .centreName(assignedCentre != null ? assignedCentre.getName() : null)
                 .role(user.getRole())
+                .status(user.getStatus())
                 .build();
     }
 }

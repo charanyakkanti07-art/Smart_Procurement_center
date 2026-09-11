@@ -7,6 +7,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
 import Loading from '../components/Loading';
+import DepositCheckoutModal from '../components/DepositCheckoutModal';
 
 export const SlotSelection = () => {
   const [centre, setCentre] = useState(null);
@@ -14,8 +15,16 @@ export const SlotSelection = () => {
   const [selectedDate, setSelectedDate] = useState('2026-09-20');
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const { t } = useLanguage();
   const navigate = useNavigate();
+
+  const defaultSlots = [
+    { slotId: 'SLOT-1', timeWindow: '08:00 AM – 10:00 AM', status: 'AVAILABLE', estimatedWaitMinutes: 15 },
+    { slotId: 'SLOT-2', timeWindow: '10:00 AM – 12:00 PM', status: 'AVAILABLE', estimatedWaitMinutes: 25 },
+    { slotId: 'SLOT-3', timeWindow: '12:00 PM – 02:00 PM', status: 'NEAR_CAPACITY', estimatedWaitMinutes: 40 },
+    { slotId: 'SLOT-4', timeWindow: '02:00 PM – 04:00 PM', status: 'FULL', estimatedWaitMinutes: 60 }
+  ];
 
   useEffect(() => {
     const savedCentre = localStorage.getItem('selected_centre');
@@ -29,12 +38,18 @@ export const SlotSelection = () => {
     setLoading(true);
     try {
       const data = await centreService.getSlots(centre?.centreId || 1);
-      setSlots(data);
-      // Preselect first available slot
-      const firstAvail = data.find(s => s.status !== 'FULL');
-      if (firstAvail) setSelectedSlot(firstAvail);
+      if (data && data.length > 0) {
+        setSlots(data);
+        const firstAvail = data.find(s => s.status !== 'FULL');
+        if (firstAvail) setSelectedSlot(firstAvail);
+      } else {
+        setSlots(defaultSlots);
+        setSelectedSlot(defaultSlots[0]);
+      }
     } catch (err) {
       console.error(err);
+      setSlots(defaultSlots);
+      setSelectedSlot(defaultSlots[0]);
     } finally {
       setLoading(false);
     }
@@ -45,8 +60,14 @@ export const SlotSelection = () => {
       alert(t('errors.generic'));
       return;
     }
+    setIsDepositModalOpen(true);
+  };
+
+  const handleDepositSuccess = (depositResult) => {
     localStorage.setItem('selected_slot', JSON.stringify(selectedSlot));
     localStorage.setItem('selected_date', selectedDate);
+    localStorage.setItem('booking_deposit', JSON.stringify(depositResult));
+    setIsDepositModalOpen(false);
     navigate('/booking-confirmation');
   };
 
@@ -154,6 +175,20 @@ export const SlotSelection = () => {
       >
         {t('common.continue')}
       </Button>
+      {/* Deposit Checkout Modal */}
+      <DepositCheckoutModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        onPaymentSuccess={handleDepositSuccess}
+        booking={{
+          centreName: centre?.name,
+          bookingDate: selectedDate,
+          slotWindow: selectedSlot?.timeWindow,
+          cropType: 'Paddy',
+          quantityKg: 500,
+          farmerName: 'Farmer Ramesh'
+        }}
+      />
     </div>
   );
 };

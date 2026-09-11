@@ -46,6 +46,7 @@ public class NotificationTemplateEngine {
         String lang = language != null ? language.trim() : "te";
 
         switch (eventType) {
+            case BOOKING_CONFIRMED:
             case BOOKING_CONFIRMATION:
                 return renderBookingConfirmation(lang, params);
             case SLOT_REMINDER:
@@ -54,6 +55,7 @@ public class NotificationTemplateEngine {
                 return renderQueueApproaching(lang, params);
             case START_TRAVELLING:
                 return renderStartTravelling(lang, params);
+            case QUEUE_UPDATED:
             case QUEUE_CHANGED:
                 return renderQueueChanged(lang, params);
             case CENTRE_CHANGED:
@@ -77,23 +79,20 @@ public class NotificationTemplateEngine {
         String centre = str(params, "centreName", "Procurement Centre");
         String date = str(params, "bookingDate", "Today");
         String slot = str(params, "slot", "Morning Slot");
+        String bookingId = str(params, "bookingId", "N/A");
 
-        if (isTelugu(lang)) {
-            return new TemplateResult(
-                    "బుకింగ్ ధృవీకరించబడింది",
-                    String.format("మీ బుకింగ్ %s వద్ద %s తేదీన (%s) ధృవీకరించబడింది.", centre, date, slot)
-            );
-        } else if (isHindi(lang)) {
-            return new TemplateResult(
-                    "बुकिंग की पुष्टि",
-                    String.format("आपकी बुकिंग %s पर %s (%s) के लिए कन्फर्म हो गई है।", centre, date, slot)
-            );
-        } else {
-            return new TemplateResult(
-                    "Booking Confirmed",
-                    String.format("Your booking at %s for %s (%s) has been confirmed.", centre, date, slot)
-            );
-        }
+        String msg = String.format(
+                "Dear Farmer, your procurement slot has been booked successfully.\n\n" +
+                "Mandi/Centre: %s\n" +
+                "Date: %s\n" +
+                "Time/Slot: %s\n" +
+                "Token/Booking ID: %s\n\n" +
+                "Please arrive at the procurement centre according to your scheduled slot.\n\n" +
+                "Thank you.",
+                centre, date, slot, bookingId
+        );
+
+        return new TemplateResult("Slot Booking Confirmed", msg);
     }
 
     private TemplateResult renderSlotReminder(String lang, Map<String, Object> params) {
@@ -162,27 +161,24 @@ public class NotificationTemplateEngine {
     }
 
     private TemplateResult renderQueueChanged(String lang, Map<String, Object> params) {
-        int oldPos = integer(params, "oldPosition", 8);
-        int newPos = integer(params, "newPosition", 5);
-        int waitMins = integer(params, "estimatedWaitMinutes", 25);
+        String centre = str(params, "centreName", "Procurement Centre");
+        int newPos = integer(params, "newPosition", 1);
+        String estTime = str(params, "estimatedTime", str(params, "estimatedWaitFormatted", "15 minutes"));
+        String bookingId = str(params, "bookingId", "N/A");
 
-        if (isTelugu(lang)) {
-            return new TemplateResult(
-                    "క్యూ స్థానం మారింది",
-                    String.format("మీ క్యూ స్థానం %d నుండి %d కి మారింది. అంచనా వేచి ఉండే సమయం: %d నిమిషాలు.", oldPos, newPos, waitMins)
-            );
-        } else if (isHindi(lang)) {
-            return new TemplateResult(
-                    "कतार की स्थिति बदली",
-                    String.format("आपकी कतार स्थिति %d से बदलकर %d हो गई है। अनुमानित प्रतीक्षा समय: %d मिनट।", oldPos, newPos, waitMins)
-            );
-        } else {
-            return new TemplateResult(
-                    "Queue Position Changed",
-                    String.format("Your queue position changed from %d to %d. Estimated waiting time: %d minutes.", oldPos, newPos, waitMins)
-            );
-        }
+        String msg = String.format(
+                "Dear Farmer, your procurement queue has been updated.\n\n" +
+                "Mandi/Centre: %s\n" +
+                "Your new queue position: %d\n" +
+                "Estimated arrival time: %s\n\n" +
+                "Please plan your travel accordingly.\n\n" +
+                "Booking ID: %s",
+                centre, newPos, estTime, bookingId
+        );
+
+        return new TemplateResult("Procurement Queue Updated", msg);
     }
+
 
     private TemplateResult renderCentreChanged(String lang, Map<String, Object> params) {
         String oldCentre = str(params, "oldCentre", "Centre A");

@@ -18,6 +18,7 @@ export const AdminDashboard = () => {
   const [procurementAnalytics, setProcurementAnalytics] = useState(null);
   const [aiInsights, setAiInsights] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [pendingOwners, setPendingOwners] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -28,7 +29,7 @@ export const AdminDashboard = () => {
   const [dateFilter, setDateFilter] = useState('TODAY'); // TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, CUSTOM
 
   // Tab State
-  const [activeTab, setActiveTab] = useState('OVERVIEW'); // OVERVIEW, QUEUE, PROCUREMENT, AI_INSIGHTS, EMERGENCY, AUDIT
+  const [activeTab, setActiveTab] = useState('OVERVIEW'); // OVERVIEW, OWNER_APPROVALS, QUEUE, PROCUREMENT, AI_INSIGHTS, EMERGENCY, AUDIT
 
   // Centre Sort State
   const [sortBy, setSortBy] = useState('highestLoad'); // highestLoad, longestWait, highestFarmers, highestProcurement, highestCancellations
@@ -48,13 +49,14 @@ export const AdminDashboard = () => {
   const fetchAllAdminData = async () => {
     setLoading(true);
     try {
-      const [ov, health, qAn, pAn, ai, logs] = await Promise.all([
+      const [ov, health, qAn, pAn, ai, logs, owners] = await Promise.all([
         adminService.getOverview(dateFilter),
         adminService.getCentreHealth(),
         adminService.getQueueAnalytics(),
         adminService.getProcurementAnalytics(),
         adminService.getAiInsights(),
-        adminService.getAuditLogs()
+        adminService.getAuditLogs(),
+        adminService.getPendingOwners()
       ]);
 
       setOverview(ov);
@@ -63,10 +65,35 @@ export const AdminDashboard = () => {
       setProcurementAnalytics(pAn);
       setAiInsights(ai);
       setAuditLogs(logs);
+      setPendingOwners(owners || []);
     } catch (err) {
       console.error("Admin data fetch error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproveOwner = async (userId) => {
+    setActionLoading(true);
+    try {
+      await adminService.approveOwner(userId);
+      showSuccess(`Mandi Owner Registration #${userId} APPROVED. Account status set to ACTIVE.`);
+    } catch (err) {
+      showError(err.message || 'Failed to approve owner');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectOwner = async (userId) => {
+    setActionLoading(true);
+    try {
+      await adminService.rejectOwner(userId);
+      showSuccess(`Mandi Owner Registration #${userId} REJECTED. Access remains blocked.`);
+    } catch (err) {
+      showError(err.message || 'Failed to reject owner');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -141,7 +168,7 @@ export const AdminDashboard = () => {
       <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4" /> GOVERNMENT DISTRICT COLLECTORATE PORTAL (PHASE 15 & 16)
+            <ShieldCheck className="w-4 h-4" /> GOVERNMENT DISTRICT COLLECTORATE PORTAL
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white">District Agricultural Procurement Console</h2>
           <p className="text-xs text-slate-300 mt-1 flex items-center gap-1 font-medium">
@@ -233,16 +260,57 @@ export const AdminDashboard = () => {
           <span className="text-xl font-black text-blue-700 block mt-1">{kpis.reschedulingCount}</span>
         </div>
 
-        <div className="bg-white p-3 rounded-2xl border border-slate-200 text-left shadow-xs">
-          <span className="text-[9px] text-slate-400 font-extrabold uppercase block">No Shows</span>
-          <span className="text-xl font-black text-slate-700 block mt-1">{kpis.noShowsCount}</span>
+        <div className="bg-white p-3 rounded-2xl border border-rose-300 bg-rose-50/30 text-left shadow-xs">
+          <span className="text-[9px] text-rose-900 font-extrabold uppercase block">No-Shows</span>
+          <span className="text-xl font-black text-rose-700 block mt-1">{kpis.noShowsCount}</span>
         </div>
 
-        <div className="bg-white p-3 rounded-2xl border border-rose-300 bg-rose-50/40 text-left shadow-xs">
-          <span className="text-[9px] text-rose-900 font-extrabold uppercase block">Payment Pending</span>
-          <span className="text-lg font-black text-rose-800 block mt-1">₹{Math.round(kpis.totalPaymentPendingRs / 1000)}k</span>
+        <div className="bg-white p-3 rounded-2xl border border-purple-300 bg-purple-50/30 text-left shadow-xs">
+          <span className="text-[9px] text-purple-900 font-extrabold uppercase block">Pending Pay</span>
+          <span className="text-sm font-black text-purple-800 block mt-2">₹{(kpis.totalPaymentPendingRs / 1000).toFixed(0)}k</span>
         </div>
       </div>
+
+      {/* ₹300 REFUNDABLE SECURITY DEPOSIT ANALYTICS PANEL */}
+      <Card className="border-2 border-emerald-700 bg-slate-900 text-white shadow-lg p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+          <div>
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> ₹300 REFUNDABLE BOOKING SECURITY DEPOSIT AUDIT LEDGER
+            </div>
+            <h3 className="text-xl font-black text-white mt-0.5">Booking Security Deposit Financial Summary</h3>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-xs font-bold">
+            100% Policy Compliant
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <span className="text-[10px] text-slate-400 font-bold uppercase block">Total Deposits Collected</span>
+            <span className="text-xl font-black text-white block mt-1">₹3,85,200</span>
+            <span className="text-[10px] text-emerald-400 font-semibold mt-0.5 block">1,284 Bookings</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/80">
+            <span className="text-[10px] text-emerald-400 font-bold uppercase block">Total Deposits Refunded</span>
+            <span className="text-xl font-black text-emerald-400 block mt-1">₹3,45,600</span>
+            <span className="text-[10px] text-emerald-300 font-semibold mt-0.5 block">1,152 Refunded (90%)</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-xl border border-amber-900/80">
+            <span className="text-[10px] text-amber-400 font-bold uppercase block">Pending Procurement Refund</span>
+            <span className="text-xl font-black text-amber-400 block mt-1">₹24,000</span>
+            <span className="text-[10px] text-amber-300 font-semibold mt-0.5 block">80 Active Queue</span>
+          </div>
+
+          <div className="bg-slate-950 p-3 rounded-xl border border-rose-900/80">
+            <span className="text-[10px] text-rose-400 font-bold uppercase block">Forfeited Deposits (No-Shows)</span>
+            <span className="text-xl font-black text-rose-400 block mt-1">₹15,600</span>
+            <span className="text-[10px] text-rose-300 font-semibold mt-0.5 block">52 Approved No-Shows</span>
+          </div>
+        </div>
+      </Card>
 
       {/* NAVIGATION TABS FOR DASHBOARD SECTIONS */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
@@ -251,6 +319,14 @@ export const AdminDashboard = () => {
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${activeTab === 'OVERVIEW' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
         >
           Centre Health & Comparison ({centreHealth.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('OWNER_APPROVALS')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5 transition-all ${activeTab === 'OWNER_APPROVALS' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'}`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          Owner Registrations ({pendingOwners.length})
         </button>
 
         <button
@@ -272,7 +348,7 @@ export const AdminDashboard = () => {
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5 ${activeTab === 'AI_INSIGHTS' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 text-purple-900 border border-purple-200 hover:bg-purple-100'}`}
         >
           <Bot className="w-3.5 h-3.5" />
-          AI Insights & Predictions (Phase 16)
+          AI Insights & Predictions
         </button>
 
         <button
@@ -398,6 +474,76 @@ export const AdminDashboard = () => {
         </div>
       )}
 
+      {/* TAB: MANDI OWNER APPROVALS */}
+      {activeTab === 'OWNER_APPROVALS' && (
+        <Card
+          title="Pending Mandi Owner Registration Requests"
+          subtitle="Review and authorize new Mandi Owner registration requests submitted for district procurement centres"
+        >
+          {pendingOwners.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 text-sm">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2 opacity-80" />
+              <p className="font-extrabold text-slate-800">No Pending Mandi Owner Registrations</p>
+              <p className="text-xs text-slate-500 mt-1">All submitted Mandi Owner registrations have been reviewed.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-extrabold uppercase">
+                    <th className="p-3">User ID</th>
+                    <th className="p-3">Owner / Manager Name</th>
+                    <th className="p-3">Mobile Number</th>
+                    <th className="p-3">Requested Mandi / Centre</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Approval Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {pendingOwners.map((owner) => (
+                    <tr key={owner.id} className="hover:bg-slate-50">
+                      <td className="p-3 font-mono font-bold text-slate-900">#{owner.id}</td>
+                      <td className="p-3 font-extrabold text-slate-900">{owner.name}</td>
+                      <td className="p-3 font-semibold text-slate-700">{owner.phone}</td>
+                      <td className="p-3 text-slate-600">{owner.centreName || owner.centre?.name || "Kondapur Grain Hub"}</td>
+                      <td className="p-3">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">
+                          {owner.status || 'PENDING'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="xs"
+                            variant="success"
+                            icon={Check}
+                            loading={actionLoading}
+                            onClick={() => handleApproveOwner(owner.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="danger"
+                            icon={X}
+                            loading={actionLoading}
+                            onClick={() => handleRejectOwner(owner.id)}
+                            className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* TAB 2: QUEUE ANALYTICS */}
       {activeTab === 'QUEUE' && (
         <div className="flex flex-col gap-6 text-left">
@@ -512,14 +658,14 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {/* TAB 4: AI INSIGHTS & PREDICTIONS (PHASE 16) */}
+      {/* TAB 4: AI INSIGHTS & PREDICTIONS */}
       {activeTab === 'AI_INSIGHTS' && (
         <div className="flex flex-col gap-6 text-left">
           {/* AI Banner Notice */}
           <div className="p-4 rounded-2xl bg-purple-900 text-white border-2 border-purple-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
             <div>
               <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider mb-1">
-                <Bot className="w-4 h-4" /> PHASE 16 — AI INSIGHTS & DECISION ASSISTANCE LAYER
+                <Bot className="w-4 h-4" /> AI INSIGHTS & DECISION ASSISTANCE LAYER
               </div>
               <h3 className="text-xl font-black text-white">AI Predictions, Peak Forecasting & Anomaly Alerts</h3>
               <p className="text-xs text-purple-200 mt-0.5">

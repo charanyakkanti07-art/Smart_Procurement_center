@@ -1,6 +1,7 @@
 package com.smartprocurement.dto;
 
 import com.smartprocurement.entity.Role;
+import com.smartprocurement.entity.UserStatus;
 
 public class AuthResponse {
     private String token;
@@ -8,18 +9,20 @@ public class AuthResponse {
     private Long farmerId;
     private Long userId;
     private Role role;
+    private UserStatus status;
     private Long centreId;
     private String centreName;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, String message, Long farmerId, Long userId, Role role, Long centreId, String centreName) {
+    public AuthResponse(String token, String message, Long farmerId, Long userId, Role role, UserStatus status, Long centreId, String centreName) {
         this.token = token;
         this.message = message;
         this.farmerId = farmerId;
         this.userId = userId;
         this.role = role;
+        this.status = status;
         this.centreId = centreId;
         this.centreName = centreName;
     }
@@ -39,6 +42,9 @@ public class AuthResponse {
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 
+    public UserStatus getStatus() { return status; }
+    public void setStatus(UserStatus status) { this.status = status; }
+
     public Long getCentreId() { return centreId; }
     public void setCentreId(Long centreId) { this.centreId = centreId; }
 
@@ -55,6 +61,7 @@ public class AuthResponse {
         private Long farmerId;
         private Long userId;
         private Role role;
+        private UserStatus status;
         private Long centreId;
         private String centreName;
 
@@ -63,11 +70,12 @@ public class AuthResponse {
         public AuthResponseBuilder farmerId(Long farmerId) { this.farmerId = farmerId; return this; }
         public AuthResponseBuilder userId(Long userId) { this.userId = userId; return this; }
         public AuthResponseBuilder role(Role role) { this.role = role; return this; }
+        public AuthResponseBuilder status(UserStatus status) { this.status = status; return this; }
         public AuthResponseBuilder centreId(Long centreId) { this.centreId = centreId; return this; }
         public AuthResponseBuilder centreName(String centreName) { this.centreName = centreName; return this; }
 
         public AuthResponse build() {
-            return new AuthResponse(token, message, farmerId, userId, role, centreId, centreName);
+            return new AuthResponse(token, message, farmerId, userId, role, status, centreId, centreName);
         }
     }
 }

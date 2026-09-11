@@ -1,15 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Ticket, Clock, Navigation, CheckCircle2, QrCode, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Ticket, Clock, Navigation, CheckCircle2, QrCode, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
+import FarmerQRCode from '../components/FarmerQRCode';
+import { handleStartTravelling } from '../services/navigationService';
 
 export const DigitalToken = () => {
   const { activeBooking } = useAuth();
   const { t } = useLanguage();
+  const [navLoading, setNavLoading] = useState(false);
+  const [navError, setNavError] = useState('');
+
+  const onNavClick = () => {
+    setNavError('');
+    handleStartTravelling({
+      booking: activeBooking,
+      onStartLoading: () => setNavLoading(true),
+      onEndLoading: () => setNavLoading(false),
+      onError: (msg) => setNavError(msg)
+    });
+  };
 
   const token = activeBooking || {
     tokenNumber: "#103",
@@ -63,12 +77,8 @@ export const DigitalToken = () => {
             {token.cropType} • {token.quantityKg} {t('farmer.unit')}
           </p>
 
-          {/* QR Code Graphic Placeholder */}
-          <div className="my-5 p-3 rounded-2xl bg-white text-slate-900 shadow-md flex flex-col items-center gap-1 border-2 border-emerald-400">
-            <div className="w-36 h-36 bg-slate-900 p-2 rounded-xl flex items-center justify-center text-white relative">
-              <QrCode className="w-32 h-32 text-emerald-400" />
-            </div>
-          </div>
+          {/* Dynamic Valid QR Code Component */}
+          <FarmerQRCode booking={token} size={160} className="my-4" />
 
           {/* Token Specs Table */}
           <div className="w-full grid grid-cols-2 gap-2 text-left bg-slate-900/90 p-3.5 rounded-2xl border border-emerald-900/60 text-xs">
@@ -95,17 +105,38 @@ export const DigitalToken = () => {
         </div>
 
         {/* SMART DEPARTURE RECOMMENDATION WIDGET */}
-        <div className="bg-amber-500/20 border-t border-amber-500/40 p-4 text-left flex items-start gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 mt-0.5 shadow-sm font-bold">
-            <Navigation className="w-4 h-4" />
-          </div>
-          <div>
-            <h4 className="font-extrabold text-amber-300 text-xs uppercase tracking-wide">
+        <div className="bg-amber-500/20 border-t border-amber-500/40 p-4 text-left flex flex-col gap-3">
+          {navError && (
+            <div className="p-2.5 bg-rose-900/90 border border-rose-500 text-rose-100 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-300 shrink-0" />
+              <span>{navError}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 mt-0.5 shadow-sm font-bold">
+                <Navigation className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-amber-300 text-xs uppercase tracking-wide">
+                  {t('booking.startTravelling')}
+                </h4>
+                <p className="text-xs text-amber-100 font-medium mt-0.5 leading-relaxed">
+                  {t('centre.travelTime', { travelTime: token.travelTimeMinutes })}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              icon={Navigation}
+              loading={navLoading}
+              onClick={onNavClick}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-md"
+            >
               {t('booking.startTravelling')}
-            </h4>
-            <p className="text-xs text-amber-100 font-medium mt-0.5 leading-relaxed">
-              {t('centre.travelTime', { travelTime: token.travelTimeMinutes })}
-            </p>
+            </Button>
           </div>
         </div>
       </Card>

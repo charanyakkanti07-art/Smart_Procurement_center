@@ -5,7 +5,9 @@ export const ownerService = {
     try {
       const res = await api.post('/auth/login', { phone, password });
       if (res.data && res.data.token) {
+        localStorage.setItem('token', res.data.token);
         localStorage.setItem('owner_token', res.data.token);
+        localStorage.setItem('user_role', 'OWNER');
         localStorage.setItem('owner_info', JSON.stringify(res.data));
       }
       return res.data;
@@ -19,7 +21,9 @@ export const ownerService = {
         centreId: 1,
         centreName: "ABC Procurement Centre"
       };
+      localStorage.setItem('token', demoData.token);
       localStorage.setItem('owner_token', demoData.token);
+      localStorage.setItem('user_role', 'OWNER');
       localStorage.setItem('owner_info', JSON.stringify(demoData));
       return demoData;
     }
@@ -125,7 +129,7 @@ export const ownerService = {
     return res.data;
   },
 
-  // PHASE 11 — APPROVAL & JOURNEY SIMULATION APIS
+  // APPROVAL & JOURNEY APIS
   async getPendingApprovalRequests(phone = "9876543210") {
     try {
       const res = await api.get('/approval-requests', { params: { phone } });
@@ -173,7 +177,7 @@ export const ownerService = {
     }
   },
 
-  // PHASE 14 — PROCUREMENT & PAYMENT APIS
+  // PROCUREMENT & PAYMENT APIS
   async markFarmerArrival(bookingId) {
     try {
       const res = await api.post(`/procurements/arrival/${bookingId}`);

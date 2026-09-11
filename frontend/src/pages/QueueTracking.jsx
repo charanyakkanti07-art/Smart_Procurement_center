@@ -7,6 +7,7 @@ import { subscribeToQueueUpdates } from '../services/socket';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Loading from '../components/Loading';
+import { handleStartTravelling } from '../services/navigationService';
 
 export const QueueTracking = () => {
   const { activeBooking } = useAuth();
@@ -15,6 +16,18 @@ export const QueueTracking = () => {
   const [loading, setLoading] = useState(true);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState('');
+  const [navLoading, setNavLoading] = useState(false);
+  const [navError, setNavError] = useState('');
+
+  const onNavClick = () => {
+    setNavError('');
+    handleStartTravelling({
+      booking: activeBooking,
+      onStartLoading: () => setNavLoading(true),
+      onEndLoading: () => setNavLoading(false),
+      onError: (msg) => setNavError(msg)
+    });
+  };
 
   const bookingId = activeBooking?.bookingId || activeBooking?.id || 1;
 
@@ -161,20 +174,39 @@ export const QueueTracking = () => {
 
       {/* SMART DEPARTURE RECOMMENDATION */}
       <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-            <Navigation className="w-5 h-5" />
+        {navError && (
+          <div className="mb-3 p-3 bg-rose-100 border border-rose-300 text-rose-950 text-xs font-semibold rounded-xl flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+            <span>{navError}</span>
           </div>
-          <div>
-            <h3 className="font-extrabold text-amber-950 text-sm">{t('booking.startTravelling')}</h3>
-            <p className="text-xs text-amber-900 font-medium mt-1 leading-relaxed">
-              {t('queue.estimatedWait', { minutes: 15 })}: <strong>{estWait}</strong>
-            </p>
-            <div className="mt-2.5 p-2.5 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-950 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>{t('notifications.queueApproachingBody', { position: queuePos })}</span>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+              <Navigation className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-amber-950 text-sm">{t('booking.startTravelling')}</h3>
+              <p className="text-xs text-amber-900 font-medium mt-1 leading-relaxed">
+                {t('queue.estimatedWait', { minutes: 15 })}: <strong>{estWait}</strong>
+              </p>
+              <div className="mt-2.5 p-2.5 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-950 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>{t('notifications.queueApproachingBody', { position: queuePos })}</span>
+              </div>
             </div>
           </div>
+
+          <Button
+            size="md"
+            icon={Navigation}
+            loading={navLoading}
+            onClick={onNavClick}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-md"
+          >
+            {t('booking.startTravelling')}
+          </Button>
         </div>
       </Card>
 

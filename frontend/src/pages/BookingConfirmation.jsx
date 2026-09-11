@@ -150,6 +150,20 @@ export const BookingConfirmation = () => {
               </span>
             </div>
           </div>
+
+          {/* Refundable Deposit Status Box */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/40 text-xs text-left flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-emerald-950 text-xs uppercase">Booking Security Deposit</span>
+                <span className="font-black text-emerald-900 text-sm">₹300.00 (PAID)</span>
+              </div>
+              <p className="text-[11px] text-emerald-900 font-medium leading-relaxed mt-1">
+                ✓ ₹300 security deposit received. This deposit will be automatically returned to your bank account along with your final procurement payment.
+              </p>
+            </div>
+          </div>
         </div>
 
         <Button

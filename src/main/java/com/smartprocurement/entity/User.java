@@ -23,6 +23,10 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "centre_id")
     private ProcurementCentre centre;
@@ -32,12 +36,13 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String name, String phone, String password, Role role, ProcurementCentre centre, LocalDateTime createdAt) {
+    public User(Long id, String name, String phone, String password, Role role, UserStatus status, ProcurementCentre centre, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.phone = phone;
         this.password = password;
         this.role = role;
+        this.status = status != null ? status : UserStatus.ACTIVE;
         this.centre = centre;
         this.createdAt = createdAt;
     }
@@ -45,6 +50,9 @@ public class User {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = UserStatus.ACTIVE;
+        }
     }
 
     public Long getId() { return id; }
@@ -62,6 +70,9 @@ public class User {
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 
+    public UserStatus getStatus() { return status; }
+    public void setStatus(UserStatus status) { this.status = status; }
+
     public ProcurementCentre getCentre() { return centre; }
     public void setCentre(ProcurementCentre centre) { this.centre = centre; }
 
@@ -78,6 +89,7 @@ public class User {
         private String phone;
         private String password;
         private Role role;
+        private UserStatus status = UserStatus.ACTIVE;
         private ProcurementCentre centre;
         private LocalDateTime createdAt;
 
@@ -86,11 +98,12 @@ public class User {
         public UserBuilder phone(String phone) { this.phone = phone; return this; }
         public UserBuilder password(String password) { this.password = password; return this; }
         public UserBuilder role(Role role) { this.role = role; return this; }
+        public UserBuilder status(UserStatus status) { this.status = status; return this; }
         public UserBuilder centre(ProcurementCentre centre) { this.centre = centre; return this; }
         public UserBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
 
         public User build() {
-            return new User(id, name, phone, password, role, centre, createdAt);
+            return new User(id, name, phone, password, role, status, centre, createdAt);
         }
     }
 }

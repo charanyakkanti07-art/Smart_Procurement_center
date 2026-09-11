@@ -1,10 +1,12 @@
 package com.smartprocurement.entity;
 
 public enum NotificationEventType {
+    BOOKING_CONFIRMED,
     BOOKING_CONFIRMATION,
     SLOT_REMINDER,
     QUEUE_APPROACHING,
     START_TRAVELLING,
+    QUEUE_UPDATED,
     QUEUE_CHANGED,
     CENTRE_CHANGED,
     RESCHEDULE_REQUEST,
@@ -13,3 +15,4 @@ public enum NotificationEventType {
     PROCUREMENT_COMPLETED,
     PAYMENT_COMPLETED
 }
+

@@ -1,25 +1,33 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Phone, Lock, Building2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ShieldCheck, Phone, Lock, Building2, ArrowLeft, Zap } from 'lucide-react';
 import adminService from '../../services/adminApi';
+import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 
 export const AdminLogin = () => {
-  const [phone, setPhone] = useState('9999999999');
-  const [password, setPassword] = useState('admin123');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login, switchRole } = useAuth();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      switchRole('ADMIN');
       await adminService.login(phone, password);
-      navigate('/admin/dashboard');
+      const authRes = await login(phone, password, 'ADMIN');
+      if (authRes.success) {
+        navigate('/admin/dashboard');
+      } else {
+        setError(authRes.message || 'Invalid admin credentials. Access restricted to district authority.');
+      }
     } catch (err) {
       setError('Invalid admin credentials. Access restricted to district authority.');
     } finally {
@@ -27,8 +35,23 @@ export const AdminLogin = () => {
     }
   };
 
+  const handleDemoFill = async () => {
+    setPhone('9999999999');
+    setPassword('admin123');
+    switchRole('ADMIN');
+    await login('9999999999', 'admin123', 'ADMIN');
+    navigate('/admin/dashboard');
+  };
+
   return (
-    <div className="max-w-md mx-auto px-4 py-12 text-left">
+    <div className="max-w-md mx-auto px-4 py-8 text-left">
+      <div className="mb-4">
+        <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to District Admin Landing</span>
+        </Link>
+      </div>
+
       <Card className="border-2 border-slate-800 shadow-2xl">
         <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100 mb-6">
           <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-md mb-3">
@@ -39,11 +62,20 @@ export const AdminLogin = () => {
           <p className="text-xs text-slate-500 mt-1">Authorized Official Access for Procurement Supervision</p>
         </div>
 
-        {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-bold mb-4">
-            {error}
+        {/* 1-Click Admin Access Helper */}
+        <div className="mb-5 p-3 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 flex items-center justify-between gap-3 text-xs">
+          <div>
+            <span className="font-extrabold block text-amber-400">District Admin Access</span>
+            <span className="text-[11px] text-slate-300">Phone: 9999999999 | Pass: admin123</span>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={handleDemoFill}
+            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-xs"
+          >
+            1-Click Login
+          </button>
+        </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4 text-xs">
           <div>

@@ -1,8 +1,11 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import BottomNavigation from './components/BottomNavigation';
+
+// Public landing page
+import LandingPage from './pages/LandingPage';
 
 // Farmer Pages
 import LanguageSelection from './pages/LanguageSelection';
@@ -33,10 +36,13 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 
 import { LanguageProvider } from './context/LanguageContext';
 
+// Routes where the Navbar and BottomNav should be hidden (full-page layouts)
+const FULLPAGE_ROUTES = ['/'];
+
 // Protected Route Component with Role Authorization
-const ProtectedRoute = ({ children, allowedRoles, fallbackLogin = "/login" }) => {
+const ProtectedRoute = ({ children, allowedRoles, fallbackLogin = '/login' }) => {
   const { isAuthenticated, userRole } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to={fallbackLogin} replace />;
   }
@@ -52,48 +58,50 @@ const ProtectedRoute = ({ children, allowedRoles, fallbackLogin = "/login" }) =>
   return children;
 };
 
-// Port-aware Root Route to support multi-host localhost dev servers
+// Root route: landing page for unauthenticated, dashboard redirect for authenticated
 const RootRoute = () => {
-  const port = window.location.port;
   const { isAuthenticated, userRole } = useAuth();
 
-  if (port === '5174') {
-    if (isAuthenticated && (userRole === 'OWNER' || userRole === 'ADMIN')) {
-      return <Navigate to="/owner/dashboard" replace />;
-    }
-    return <OwnerLanding />;
+  if (isAuthenticated) {
+    if (userRole === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+    if (userRole === 'OWNER') return <Navigate to="/owner/dashboard" replace />;
+    return <Navigate to="/farmer" replace />;
   }
 
-  if (port === '5175') {
-    if (isAuthenticated && userRole === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <AdminLanding />;
-  }
-
-  return <Home />;
+  // Public landing page – no auth required
+  return <LandingPage />;
 };
 
 export const AppContent = () => {
+  const location = useLocation();
+  const isFullPage = FULLPAGE_ROUTES.includes(location.pathname);
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 pb-20 md:pb-6">
-      <Navbar />
-      <main className="flex-1 w-full max-w-5xl mx-auto">
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {!isFullPage && <Navbar />}
+      <main className={isFullPage ? 'flex-1' : 'flex-1 w-full max-w-5xl mx-auto pb-20 md:pb-6'}>
         <Routes>
-          {/* Public Common Auth Routes */}
+          {/* ── Public landing ── */}
+          <Route path="/" element={<RootRoute />} />
+
+          {/* ── Common Auth ── */}
           <Route path="/language" element={<LanguageSelection />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Registration />} />
-          
-          {/* Dedicated Owner & Admin Portals & Landing Pages */}
+
+          {/* ── Farmer-specific auth aliases (requirement) ── */}
+          <Route path="/farmer/login" element={<Login />} />
+          <Route path="/farmer/register" element={<Registration />} />
+
+          {/* ── Owner Portal ── */}
           <Route path="/owner" element={<OwnerLanding />} />
           <Route path="/owner/login" element={<OwnerLogin />} />
-          
+
+          {/* ── Admin Portal ── */}
           <Route path="/admin" element={<AdminLanding />} />
           <Route path="/admin/login" element={<AdminLogin />} />
 
-          {/* Farmer Portal Routes */}
-          <Route path="/" element={<RootRoute />} />
+          {/* ── Farmer Dashboard & App Routes ── */}
           <Route path="/farmer" element={<Home />} />
           <Route path="/profile" element={<ProtectedRoute allowedRoles={['FARMER', 'OWNER', 'ADMIN']}><FarmerProfile /></ProtectedRoute>} />
           <Route path="/crop-details" element={<ProtectedRoute allowedRoles={['FARMER', 'OWNER', 'ADMIN']}><CropDetails /></ProtectedRoute>} />
@@ -107,16 +115,17 @@ export const AppContent = () => {
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['FARMER', 'OWNER', 'ADMIN']}><PaymentStatus /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute allowedRoles={['FARMER', 'OWNER', 'ADMIN']}><Notifications /></ProtectedRoute>} />
 
-          {/* Owner / Operator Portal Route */}
+          {/* ── Owner Dashboard ── */}
           <Route path="/owner/dashboard" element={<ProtectedRoute allowedRoles={['OWNER', 'ADMIN']} fallbackLogin="/owner/login"><OwnerDashboard /></ProtectedRoute>} />
 
-          {/* District Admin Console Route */}
+          {/* ── Admin Dashboard ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']} fallbackLogin="/admin/login"><AdminDashboard /></ProtectedRoute>} />
 
+          {/* ── 404 fallback ── */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <BottomNavigation />
+      {!isFullPage && <BottomNavigation />}
     </div>
   );
 };

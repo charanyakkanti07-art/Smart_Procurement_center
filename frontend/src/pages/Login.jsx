@@ -12,15 +12,10 @@ export const Login = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const [phone, setPhone] = useState('9876543210');
-  const [password, setPassword] = useState('123456');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
-
-  const handleDemoFill = () => {
-    setPhone('9876543210');
-    setPassword('123456');
-  };
 
   const validate = () => {
     const errs = {};
@@ -71,22 +66,7 @@ export const Login = () => {
 
       {apiError && <ErrorMessage message={apiError} className="mb-4" />}
 
-      {/* 1-Click Farmer Access Helper */}
-      <div className="mb-4 p-3 rounded-2xl bg-emerald-900 text-emerald-100 border border-emerald-800 flex items-center justify-between gap-3 text-xs shadow-sm">
-        <div>
-          <span className="font-extrabold block text-emerald-300">Farmer Quick Access</span>
-          <span className="text-[11px] text-emerald-200">Phone: 9876543210 | Pass: 123456</span>
-        </div>
-        <button
-          type="button"
-          onClick={handleDemoFill}
-          className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-xs"
-        >
-          1-Click Fill
-        </button>
-      </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
         <Input
           label={t('onboarding.phone')}

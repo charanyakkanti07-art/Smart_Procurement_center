@@ -3,6 +3,11 @@
 > **Smart India Hackathon (SIH) Project**  
 > An end-to-end intelligent procurement, real-time queue balancing, DBT payment tracking, dynamic route estimation, and district analytics system for Indian agricultural mandis.
 
+[![Vercel Deployment](https://img.shields.io/badge/Deployment-smart--procure--center.vercel.app-blue?logo=vercel)](https://smart-procure-center.vercel.app)
+
+🔗 **Live Vercel Link**: [https://smart-procure-center.vercel.app](https://smart-procure-center.vercel.app)  
+*Alternative domain: [https://smart-procurement-center-ai.vercel.app](https://smart-procurement-center-ai.vercel.app)*
+
 ---
 
 ## 🌾 Key Features & Modules

@@ -11,7 +11,7 @@ import {
   mockNotifications
 } from './mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -371,6 +371,21 @@ export const bookingService = {
         status: 'RESCHEDULED',
         bookingDate: rescheduleData.bookingDate,
         slotWindow: rescheduleData.slot
+      };
+    }
+  },
+
+  async startTravelling(id, latitude, longitude) {
+    try {
+      const response = await api.put(`/bookings/${id}/start-travelling?latitude=${latitude || ''}&longitude=${longitude || ''}`);
+      return response.data;
+    } catch (err) {
+      return {
+        ...mockActiveBooking,
+        status: 'TRAVELLING',
+        farmerLatitude: latitude,
+        farmerLongitude: longitude,
+        travellingStartedAt: new Date().toISOString()
       };
     }
   }

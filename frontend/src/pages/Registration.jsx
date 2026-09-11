@@ -13,15 +13,15 @@ export const Registration = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: 'Ramesh Kumar',
-    phone: '9876543210',
-    password: '123456',
-    confirmPassword: '123456',
+    name: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
     role: 'FARMER',
     language: language || 'te',
-    village: 'Kondapur Village',
-    district: 'Medak District',
-    state: 'Telangana',
+    village: '',
+    district: '',
+    state: '',
     latitude: 17.3850,
     longitude: 78.4867
   });

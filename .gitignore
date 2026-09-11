@@ -31,3 +31,13 @@ Thumbs.db
 scratch/
 mysql-data/
 
+
+.vercel
+
+# Tunnel binaries and logs
+ngrok.exe
+ngrok
+localtunnel.log
+tunnel.log
+frontend/.env
+frontend/.env.*

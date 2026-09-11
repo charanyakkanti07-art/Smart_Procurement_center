@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { ShieldCheck, Phone, Lock, LogIn, Building2, User, ArrowLeft, Clock, AlertTriangle, CheckCircle2, UserPlus } from 'lucide-react';
-import ownerService from '../../services/ownerApi';
 import { authService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,6 +10,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 
 export const OwnerLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { t } = useLanguage();
 
@@ -28,7 +28,11 @@ export const OwnerLogin = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [statusNotice, setStatusNotice] = useState(null); // { type: 'PENDING' | 'REJECTED' | 'SUCCESS', message: string }
+  const [statusNotice, setStatusNotice] = useState(
+    location.state?.pendingMessage
+      ? { type: 'SUCCESS', message: location.state.pendingMessage }
+      : null
+  );
 
   const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -37,50 +41,25 @@ export const OwnerLogin = () => {
     setStatusNotice(null);
 
     try {
-      // Check if phone matches pending or rejected mock registration in local state
-      const mockPending = JSON.parse(localStorage.getItem('mock_pending_owners') || '[]');
-      const match = mockPending.find(o => o.phone === phone);
-      
-      if (match) {
-        if (match.status === 'PENDING') {
-          setStatusNotice({
-            type: 'PENDING',
-            message: `Registration Request PENDING: Account for ${match.name} is awaiting Admin Approval by the District Administrator.`
-          });
-          setLoading(false);
-          return;
-        } else if (match.status === 'REJECTED') {
-          setStatusNotice({
-            type: 'REJECTED',
-            message: `Registration Request REJECTED: Registration for ${match.name} was rejected by the District Administrator.`
-          });
-          setLoading(false);
-          return;
-        }
-      }
-
-      await ownerService.login(phone, password);
+      // Single call through AuthContext — reads role/status from real backend response
       const authRes = await login(phone, password, 'OWNER');
-      
       if (authRes.success) {
-        if (authRes.res?.status === 'PENDING') {
-          setStatusNotice({
-            type: 'PENDING',
-            message: 'Your Mandi Owner account is PENDING approval by the District Administrator.'
-          });
-        } else if (authRes.res?.status === 'REJECTED') {
-          setStatusNotice({
-            type: 'REJECTED',
-            message: 'Your Mandi Owner registration request was REJECTED by the District Administrator.'
-          });
-        } else {
-          navigate('/owner/dashboard');
-        }
+        navigate('/owner/dashboard');
+      } else if (authRes.status === 'PENDING') {
+        setStatusNotice({
+          type: 'PENDING',
+          message: authRes.message || 'Your Mandi Owner account is PENDING approval by the District Administrator.'
+        });
+      } else if (authRes.status === 'REJECTED') {
+        setStatusNotice({
+          type: 'REJECTED',
+          message: authRes.message || 'Your Mandi Owner registration request was REJECTED.'
+        });
       } else {
         setErrorMsg(authRes.message || 'Invalid operator phone or password');
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Invalid operator phone or password');
+      setErrorMsg(err.response?.data?.message || err.message || 'Invalid operator phone or password');
     } finally {
       setLoading(false);
     }
@@ -103,18 +82,6 @@ export const OwnerLogin = () => {
 
       await authService.register(regPayload);
 
-      // Save to mock pending list for offline state tracking
-      const mockPending = JSON.parse(localStorage.getItem('mock_pending_owners') || '[]');
-      const newOwnerObj = {
-        id: Date.now(),
-        name: regName + (regCentreName ? ` (${regCentreName})` : ''),
-        phone: regPhone,
-        role: 'OWNER',
-        status: 'PENDING',
-        createdAt: new Date().toISOString()
-      };
-      mockPending.push(newOwnerObj);
-      localStorage.setItem('mock_pending_owners', JSON.stringify(mockPending));
 
       setStatusNotice({
         type: 'SUCCESS',
@@ -130,25 +97,6 @@ export const OwnerLogin = () => {
       setPhone(regPhone);
     } catch (err) {
       setErrorMsg(err.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoFill = async () => {
-    setPhone('9876543211');
-    setPassword('123456');
-    setStatusNotice(null);
-    setErrorMsg('');
-    setLoading(true);
-    try {
-      await ownerService.login('9876543211', '123456');
-      const authRes = await login('9876543211', '123456', 'OWNER');
-      if (authRes.success) {
-        navigate('/owner/dashboard');
-      }
-    } catch (err) {
-      setErrorMsg('Login failed');
     } finally {
       setLoading(false);
     }
@@ -219,21 +167,6 @@ export const OwnerLogin = () => {
       {/* TAB 1: LOGIN FORM */}
       {activeTab === 'LOGIN' && (
         <>
-          {/* 1-Click Owner Access Helper */}
-          <div className="mb-4 p-3 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 flex items-center justify-between gap-3 text-xs">
-            <div>
-              <span className="font-extrabold block text-amber-400">{t('owner.operatorAccess', { defaultValue: 'Mandi Operator Access' })}</span>
-              <span className="text-[11px] text-slate-300">Phone: 9876543211 | Pass: 123456</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-xs"
-            >
-              {t('owner.oneClickLogin', { defaultValue: '1-Click Login' })}
-            </button>
-          </div>
-
           <form onSubmit={handleLoginSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
             <Input
               label={t('owner.operatorMobile', { defaultValue: 'Operator Mobile Number' })}

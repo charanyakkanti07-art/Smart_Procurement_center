@@ -60,9 +60,11 @@ export const Registration = () => {
     if (result.success) {
       const userRole = result.role || formData.role;
       if (userRole === 'OWNER') {
-        navigate('/owner/dashboard');
+        // OWNER accounts are PENDING approval — redirect to owner login with message
+        navigate('/owner/login', { state: { pendingMessage: result.message } });
       } else {
-        navigate('/profile');
+        // FARMER — token was issued, go to farmer dashboard
+        navigate('/farmer');
       }
     } else {
       setApiError(result.message || t('errors.generic'));

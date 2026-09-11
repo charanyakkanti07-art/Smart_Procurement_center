@@ -127,7 +127,7 @@ public class DistrictAnalyticsService {
     public AdminDTO.QueueAnalyticsInfo getQueueAnalytics() {
         List<Booking> bookings = bookingRepository.findAll();
         int waiting = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.WAITING || b.getStatus() == BookingStatus.CONFIRMED).count();
-        int processing = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.IN_PROGRESS || b.getStatus() == BookingStatus.ARRIVED).count();
+        int processing = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.PROCESSING || b.getStatus() == BookingStatus.ARRIVED).count();
         int completed = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.COMPLETED).count();
         int cancellations = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).count();
         int noShows = (int) bookings.stream().filter(b -> b.getStatus() == BookingStatus.NO_SHOW).count();
@@ -158,7 +158,7 @@ public class DistrictAnalyticsService {
 
         List<AdminDTO.CropVolume> crops = new ArrayList<>();
         for (Procurement p : procurements) {
-            String crop = (p.getCropType() != null && !p.getCropType().isEmpty()) ? p.getCropType() : "Paddy";
+            String crop = (p.getBooking() != null && p.getBooking().getCrop() != null && p.getBooking().getCrop().getCropType() != null && !p.getBooking().getCrop().getCropType().isEmpty()) ? p.getBooking().getCrop().getCropType() : "Paddy";
             crops.add(AdminDTO.CropVolume.builder()
                     .cropType(crop)
                     .quantityKg(p.getNetQuantity())

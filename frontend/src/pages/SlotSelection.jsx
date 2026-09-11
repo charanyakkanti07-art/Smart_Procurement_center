@@ -8,13 +8,15 @@ import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
 import Loading from '../components/Loading';
 import DepositCheckoutModal from '../components/DepositCheckoutModal';
+import ErrorMessage from '../components/ErrorMessage';
 
 export const SlotSelection = () => {
   const [centre, setCentre] = useState(null);
   const [slots, setSlots] = useState([]);
   const [selectedDate, setSelectedDate] = useState('2026-09-20');
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -56,8 +58,9 @@ export const SlotSelection = () => {
   };
 
   const handleProceedToConfirmation = () => {
+    setErrorMsg('');
     if (!selectedSlot) {
-      alert(t('errors.generic'));
+      setErrorMsg(t('errors.generic') || 'Please select a slot');
       return;
     }
     setIsDepositModalOpen(true);
@@ -73,6 +76,22 @@ export const SlotSelection = () => {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 text-left flex flex-col gap-6">
+      <div className="flex items-center gap-3 mb-2">
+        <Link to="/recommendation" className="p-2 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors cursor-pointer">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{t('booking.selectSlot')}</h2>
+          <p className="text-xs text-slate-600 font-medium mt-1">{t('booking.stepSlot')}</p>
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div className="mb-2">
+          <ErrorMessage message={errorMsg} />
+        </div>
+      )}
+
       {/* Selected Centre Header */}
       <Card className="bg-emerald-950 text-white border-0 shadow-md">
         <div className="flex items-start justify-between gap-3">

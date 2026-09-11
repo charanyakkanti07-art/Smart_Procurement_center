@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, Phone, Lock, Building2, ArrowLeft, Zap } from 'lucide-react';
-import adminService from '../../services/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -12,7 +11,7 @@ export const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login, switchRole } = useAuth();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
@@ -20,8 +19,6 @@ export const AdminLogin = () => {
     setError('');
 
     try {
-      switchRole('ADMIN');
-      await adminService.login(phone, password);
       const authRes = await login(phone, password, 'ADMIN');
       if (authRes.success) {
         navigate('/admin/dashboard');
@@ -29,19 +26,13 @@ export const AdminLogin = () => {
         setError(authRes.message || 'Invalid admin credentials. Access restricted to district authority.');
       }
     } catch (err) {
-      setError('Invalid admin credentials. Access restricted to district authority.');
+      setError(err.response?.data?.message || 'Invalid admin credentials. Access restricted to district authority.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemoFill = async () => {
-    setPhone('9999999999');
-    setPassword('admin123');
-    switchRole('ADMIN');
-    await login('9999999999', 'admin123', 'ADMIN');
-    navigate('/admin/dashboard');
-  };
+
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 text-left">
@@ -62,20 +53,6 @@ export const AdminLogin = () => {
           <p className="text-xs text-slate-500 mt-1">Authorized Official Access for Procurement Supervision</p>
         </div>
 
-        {/* 1-Click Admin Access Helper */}
-        <div className="mb-5 p-3 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 flex items-center justify-between gap-3 text-xs">
-          <div>
-            <span className="font-extrabold block text-amber-400">District Admin Access</span>
-            <span className="text-[11px] text-slate-300">Phone: 9999999999 | Pass: admin123</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleDemoFill}
-            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-xs"
-          >
-            1-Click Login
-          </button>
-        </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4 text-xs">
           <div>

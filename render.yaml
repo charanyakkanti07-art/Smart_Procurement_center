@@ -1,0 +1,46 @@
+services:
+  # Spring Boot Backend
+  - type: web
+    name: smart-procurement-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_URL
+        fromDatabase:
+          name: smart-procurement-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: smart-procurement-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: smart-procurement-db
+          property: password
+      - key: DB_DRIVER
+        value: com.mysql.cj.jdbc.Driver
+      - key: DB_DIALECT
+        value: org.hibernate.dialect.MySQLDialect
+      - key: H2_CONSOLE_ENABLED
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SMS_ENABLED
+        value: "false"
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+
+databases:
+  - name: smart-procurement-db
+    plan: free
+    databaseName: smart_procurement
+    ipAllowList: []

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { authService, farmerService } from '../services/api';
 import { useLanguage } from './LanguageContext';
 
@@ -7,7 +7,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const { language, setLanguage: setLangContext } = useLanguage();
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [userRole, setUserRole] = useState(localStorage.getItem('user_role') || 'FARMER');
+  const [userRole, setUserRole] = useState(localStorage.getItem('user_role'));
   const [farmer, setFarmer] = useState(() => {
     const saved = localStorage.getItem('farmer');
     return saved ? JSON.parse(saved) : null;
@@ -28,21 +28,31 @@ export const AuthProvider = ({ children }) => {
       try {
         await farmerService.updateLanguage?.(farmer.farmerId, lang);
       } catch (e) {
-        // Soft fallback for offline/mock
+        // Soft fallback for offline
       }
     }
   };
 
-  // Unified Login handler
+  // Unified Login handler — role comes ONLY from backend response
   const login = async (phone, password, forcedRole = null) => {
     setLoading(true);
     try {
       const res = await authService.login({ phone, password });
-      const authToken = res.token || 'demo-token-' + Date.now();
+
+      // Backend must return a real JWT token
+      const authToken = res.token;
+      if (!authToken) {
+        return { success: false, message: res.message || 'Login failed: no token received.' };
+      }
+
       setToken(authToken);
       localStorage.setItem('token', authToken);
-      
-      const role = forcedRole || res.role || (phone === '9999999999' ? 'ADMIN' : (phone === '9876543211' || phone === '9849012345' ? 'OWNER' : 'FARMER'));
+
+      // Role comes from the backend response
+      const role = res.role || forcedRole;
+      if (!role) {
+        return { success: false, message: 'Login failed: role not returned from server.' };
+      }
       setUserRole(role);
       localStorage.setItem('user_role', role);
 
@@ -56,17 +66,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('admin_info', JSON.stringify(res));
       } else if (role === 'FARMER') {
         try {
-          const profile = await farmerService.getProfile(res.farmerId || 1);
+          const profile = await farmerService.getProfile(res.farmerId);
           setFarmer(profile);
           localStorage.setItem('farmer', JSON.stringify(profile));
         } catch (e) {
           const fallbackFarmer = {
-            farmerId: res.farmerId || 1,
-            name: res.name || 'Ramesh Kumar',
+            farmerId: res.farmerId,
+            name: res.name || 'Farmer',
             phone: phone,
-            village: 'Kondapur Village',
-            district: 'Medak',
-            state: 'Telangana',
             language: language || 'te'
           };
           setFarmer(fallbackFarmer);
@@ -76,7 +83,8 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, res, role };
     } catch (err) {
-      return { success: false, message: err.message || 'Login failed' };
+      const serverMsg = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      return { success: false, message: serverMsg };
     } finally {
       setLoading(false);
     }
@@ -87,20 +95,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await authService.register(farmerData);
-      setToken(res.token);
-      localStorage.setItem('token', res.token);
-      
+
       const role = res.role || farmerData.role || 'FARMER';
       setUserRole(role);
       localStorage.setItem('user_role', role);
 
-      if (role === 'FARMER') {
+      // Only store token if one was returned (OWNER pending will have null token)
+      if (res.token) {
+        setToken(res.token);
+        localStorage.setItem('token', res.token);
+      }
+
+      if (role === 'FARMER' && res.token) {
         const profile = {
-          farmerId: res.farmerId || Date.now(),
+          farmerId: res.farmerId,
           name: farmerData.name,
           phone: farmerData.phone,
-          village: farmerData.village || 'Demo Village',
-          district: farmerData.district || 'Demo District',
+          village: farmerData.village || '',
+          district: farmerData.district || '',
           state: farmerData.state || 'Telangana',
           language: farmerData.language || language,
           latitude: farmerData.latitude || 17.385,
@@ -109,9 +121,11 @@ export const AuthProvider = ({ children }) => {
         setFarmer(profile);
         localStorage.setItem('farmer', JSON.stringify(profile));
       }
-      return { success: true, res, role };
+
+      return { success: true, res, role, message: res.message };
     } catch (err) {
-      return { success: false, message: err.message || 'Registration failed' };
+      const serverMsg = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
+      return { success: false, message: serverMsg };
     } finally {
       setLoading(false);
     }
@@ -122,10 +136,12 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUserRole(null);
     setFarmer(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('farmer');
-    localStorage.removeItem('active_booking');
+    setActiveBooking(null);
+    [
+      'token', 'user_role', 'farmer', 'active_booking',
+      'owner_token', 'owner_phone', 'owner_info',
+      'admin_token', 'admin_phone', 'admin_info'
+    ].forEach(key => localStorage.removeItem(key));
   };
 
   // Save/Update Booking
@@ -138,7 +154,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Role view switcher for portal selector
+  // Role view switcher (for UI portal switching — not a security boundary)
   const switchRole = (newRole) => {
     setUserRole(newRole);
     localStorage.setItem('user_role', newRole);

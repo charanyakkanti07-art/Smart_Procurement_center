@@ -2,31 +2,15 @@ import api from './api';
 
 export const ownerService = {
   async login(phone, password) {
-    try {
-      const res = await api.post('/auth/login', { phone, password });
-      if (res.data && res.data.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('owner_token', res.data.token);
-        localStorage.setItem('user_role', 'OWNER');
-        localStorage.setItem('owner_info', JSON.stringify(res.data));
-      }
-      return res.data;
-    } catch (err) {
-      console.warn("Owner login falling back to owner demo session", err.message);
-      const demoData = {
-        token: "demo-owner-jwt-token-9999",
-        message: "Owner Login Successful (Demo Mode)",
-        userId: 2,
-        role: "OWNER",
-        centreId: 1,
-        centreName: "ABC Procurement Centre"
-      };
-      localStorage.setItem('token', demoData.token);
-      localStorage.setItem('owner_token', demoData.token);
+    // No fallback — let the real error propagate so the OwnerLogin UI can show it
+    const res = await api.post('/auth/login', { phone, password });
+    if (res.data && res.data.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('owner_token', res.data.token);
       localStorage.setItem('user_role', 'OWNER');
-      localStorage.setItem('owner_info', JSON.stringify(demoData));
-      return demoData;
+      localStorage.setItem('owner_info', JSON.stringify(res.data));
     }
+    return res.data;
   },
 
   async getDashboard(phone = "9876543210") {

@@ -16,8 +16,9 @@ export const CropDetails = () => {
 
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const [newCrop, setNewCrop] = useState({
     cropType: 'Paddy',
@@ -46,12 +47,13 @@ export const CropDetails = () => {
   const handleAddCrop = async (e) => {
     e.preventDefault();
     setAdding(true);
+    setErrorMsg('');
     try {
       const added = await farmerService.addCrop(farmer?.farmerId || 1, newCrop);
       setCrops(prev => [...prev, added]);
       setShowAddForm(false);
     } catch (err) {
-      alert(t('errors.generic'));
+      setErrorMsg(err.message || t('errors.generic'));
     } finally {
       setAdding(false);
     }
@@ -64,19 +66,18 @@ export const CropDetails = () => {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 text-left">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {t('farmer.cropDetails')}
-          </h2>
-          <p className="text-xs text-slate-600">{t('booking.stepCrop')}</p>
-        </div>
-        {!showAddForm && (
-          <Button size="sm" icon={Plus} onClick={() => setShowAddForm(true)}>
-            {t('common.submit')}
-          </Button>
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-black text-slate-900">{t('crops.yourCrops')}</h2>
+        <Button onClick={() => setShowAddForm(!showAddForm)} size="sm" icon={Plus}>
+          {showAddForm ? 'Cancel' : t('crops.addCrop')}
+        </Button>
       </div>
+
+      {errorMsg && (
+        <div className="mb-4">
+          <ErrorMessage message={errorMsg} />
+        </div>
+      )}
 
       {/* Add Crop Form */}
       {showAddForm && (

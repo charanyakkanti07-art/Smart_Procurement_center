@@ -1,0 +1,9 @@
+{
+  "name": "smart-procure-center",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

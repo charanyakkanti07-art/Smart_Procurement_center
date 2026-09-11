@@ -25,3 +25,9 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Archives and scratch
+*.zip
+scratch/
+mysql-data/
+
